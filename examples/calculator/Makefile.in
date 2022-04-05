@@ -17,10 +17,10 @@ $(OBJECTS) : obj/%.o : src/%.cpp include/functions.h Makefile
 	$(CXX) -c -o $@ $<
 
 sobj/mathfunc.so : $(SLOBJECTS)
-	libtool $(CXX) -shared $^ -lxparam -o $@
+       libtool --mode=link --tag=LD $(CXX) -shared $^ -lxparam -o $@
 
 $(SLOBJECTS) : obj/%.lo : src/%.cpp include/mathfunc.h include/functions.h
-	libtool $(CXX) -c -o $@ $<
+       libtool --mode=compile --tag=CC $(CXX) -c -o $@ $<
 
 clean :
 	-rm -f $(TARGETS) $(OBJECTS) $(SOBJECTS) $(SLOBJECTS)

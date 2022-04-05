@@ -1,0 +1,122 @@
+diff -Naurd xparam-1.22.orig/Makefile.in xparam-1.22/Makefile.in
+--- xparam-1.22.orig/Makefile.in        2003-06-01 12:34:16.000000000 +0000
++++ xparam-1.22/Makefile.in     2021-03-10 13:28:17.319878552 +0000
+@@ -62,7 +62,7 @@
+        $(INSTALL) -d $(DESTDIR)$(libdir)
+        $(INSTALL) -d $(DESTDIR)$(includedir)
+        $(INSTALL) -d $(DESTDIR)$(priv_includedir)
+-       libtool $(INSTALL_PROGRAM) $(LIBNAME) $(DESTDIR)$(libdir)
++	libtool --mode=install $(INSTALL_PROGRAM) $(LIBNAME) $(DESTDIR)$(libdir)
+        $(INSTALL_DATA) $(XPARAM_PUBLIC_INCLUDE_FILES) $(DESTDIR)$(includedir)
+        $(INSTALL_DATA) $(XPARAM_INCLUDE_FILES) $(DESTDIR)$(priv_includedir)
+        $(install_command)
+diff -Naurd xparam-1.22.orig/examples/calculator/Makefile.in xparam-1.22/examples/calculator/Makefile.in
+--- xparam-1.22.orig/examples/calculator/Makefile.in    2002-10-26 00:45:35.000000000 +0000
++++ xparam-1.22/examples/calculator/Makefile.in 2021-03-10 13:28:17.322850899 +0000
+@@ -17,10 +17,10 @@
+        $(CXX) -c -o $@ $<
+ 
+ sobj/mathfunc.so : $(SLOBJECTS)
+-       libtool $(CXX) -shared $^ -lxparam -o $@
++       libtool --mode=link --tag=LD $(CXX) -shared $^ -lxparam -o $@
+ 
+ $(SLOBJECTS) : obj/%.lo : src/%.cpp include/mathfunc.h include/functions.h
+-       libtool $(CXX) -c -o $@ $<
++       libtool --mode=compile --tag=CC $(CXX) -c -o $@ $<
+ 
+ clean :
+        -rm -f $(TARGETS) $(OBJECTS) $(SOBJECTS) $(SLOBJECTS)
+diff -Naurd xparam-1.22.orig/examples/involved/Makefile.in xparam-1.22/examples/involved/Makefile.in
+--- xparam-1.22.orig/examples/involved/Makefile.in      2002-10-26 00:45:35.000000000 +0000
++++ xparam-1.22/examples/involved/Makefile.in   2021-03-10 13:28:17.325370460 +0000
+@@ -20,10 +20,10 @@
+        $(CXX) -c -o $@ $<
+ 
+ sobj/circle.so : $(SLOBJECTS)
+-       libtool $(CXX) -shared $^ -lxparam -o $@
++       libtool --mode=link --tag=LD $(CXX) -shared $^ -lxparam -o $@
+ 
+ $(SLOBJECTS) : obj/%.lo : src/%.cpp include/circle.h include/shapes.h
+-       libtool $(CXX) -c -o $@ $<
++       libtool --mode=compile --tag=CC $(CXX) -c -o $@ $<
+ 
+ clean :
+        -rm -f $(TARGETS) $(OBJECTS) $(SOBJECTS) $(SLOBJECTS)
+diff -Naurd xparam-1.22.orig/lib/Makefile.in xparam-1.22/lib/Makefile.in
+--- xparam-1.22.orig/lib/Makefile.in    2002-10-26 00:45:35.000000000 +0000
++++ xparam-1.22/lib/Makefile.in 2021-03-10 13:28:17.327823203 +0000
+@@ -36,13 +36,13 @@
+        -rm -rf $(XPARAM_OBJ_PATH)/.libs $(ANTLR_OBJ_PATH)/.libs
+ 
+ $(XPARAM_LOBJ_FILES) : $(XPARAM_OBJ_PATH)/%.lo : $(XPARAM_SRC_PATH)/%.cpp Makefile
+-       libtool @CXX@ @CXXFLAGS@ @CPPFLAGS@ -I$(ANTLR_INCLUDE_PATH) -c -o $@ $<
++       libtool --mode=compile --tag=CC @CXX@ @CXXFLAGS@ @CPPFLAGS@ -I$(ANTLR_INCLUDE_PATH) -c -o $@ $<
+ 
+ $(ANTLR_LOBJ_FILES) : $(ANTLR_OBJ_PATH)/%.lo : $(ANTLR_SRC_PATH)/%.cpp
+-       libtool @CXX@ @CXXFLAGS@ @CPPFLAGS@ -I$(ANTLR_INCLUDE_PATH) -c -o $@ $<
++       libtool --mode=compile --tag=CC @CXX@ @CXXFLAGS@ @CPPFLAGS@ -I$(ANTLR_INCLUDE_PATH) -c -o $@ $<
+ 
+ $(LIBRARY) : $(ALL_LOBJ_FILES)
+-       libtool @CXX@ @LDFLAGS@ -o $(LIBRARY) $(ALL_LOBJ_FILES) @LIBS@ -rpath $(libdir) -version-info 1:0:0
++       libtool --mode=link --tag=LD @CXX@ @LDFLAGS@ -o $(LIBRARY) $(ALL_LOBJ_FILES) @LIBS@ -rpath $(libdir) -version-info 1:0:0
+ 
+ .PHONY : all clean
+ 
+diff -Naurd xparam-1.22.orig/lib/sources/xp_regtype_raw_bytes.cpp xparam-1.22/lib/sources/xp_regtype_raw_bytes.cpp
+--- xparam-1.22.orig/lib/sources/xp_regtype_raw_bytes.cpp       2003-05-26 14:53:32.000000000 +0000
++++ xparam-1.22/lib/sources/xp_regtype_raw_bytes.cpp    2021-03-10 13:28:17.330873491 +0000
+@@ -34,6 +34,7 @@
+ #pragma warning (disable: 4786)
+ 
+ #include <iostream>
++#include <string.h>
+ #include "../xparam/xparam_extend.h"
+ #include "../xparam/xp_raw_bytes.h"
+ #include "../src_include/xpv_link_patch.h"
+diff -Naurd xparam-1.22.orig/lib/sources/xpv_lexer_methods.cpp xparam-1.22/lib/sources/xpv_lexer_methods.cpp
+--- xparam-1.22.orig/lib/sources/xpv_lexer_methods.cpp  2003-05-29 06:31:49.000000000 +0000
++++ xparam-1.22/lib/sources/xpv_lexer_methods.cpp       2021-03-10 13:28:17.332869454 +0000
+@@ -41,6 +41,7 @@
+ #include <iostream>
+ #include <fstream>
+ #include <algorithm>
++#include <string.h>
+ #include <assert.h>
+ #include "antlr/InputBuffer.hpp"
+ #include "../src_include/xParamLexer.hpp"
+diff -Naurd xparam-1.22.orig/lib/xparam/xp_hvl.h xparam-1.22/lib/xparam/xp_hvl.h
+--- xparam-1.22.orig/lib/xparam/xp_hvl.h        2002-10-12 08:36:52.000000000 +0000
++++ xparam-1.22/lib/xparam/xp_hvl.h     2021-03-10 13:28:17.334805164 +0000
+@@ -51,9 +51,9 @@
+                        // t_ptr may be 0
+                        void append_copy(const T* t_ptr) {
+                                if (t_ptr)
+-                                       push_back( Handle<T>(get_copy_of(*t_ptr)) );
++                                       this->push_back( Handle<T>(get_copy_of(*t_ptr)) );
+                                else
+-                                       push_back( Handle<T>() );
++                                       this->push_back( Handle<T>() );
+                        }
+ 
+                        // t_ptr may be 0
+diff -Naurd xparam-1.22.orig/lib/xparam/xp_typed_value_map.h xparam-1.22/lib/xparam/xp_typed_value_map.h
+--- xparam-1.22.orig/lib/xparam/xp_typed_value_map.h    2002-10-15 18:22:09.000000000 +0000
++++ xparam-1.22/lib/xparam/xp_typed_value_map.h 2021-03-10 13:28:17.336691637 +0000
+@@ -68,7 +68,7 @@
+                        if (val_ptr)
+                                val_handle = Handle<VALUE>( get_copy_of(*val_ptr) );
+ 
+-                       push_back( MapItem(key_handle,val_handle) );
++                       this->push_back( MapItem(key_handle,val_handle) );
+                }
+                
+                // val_ptr may be 0
+@@ -81,7 +81,7 @@
+                        VALUE* nc_val_ptr = const_cast<VALUE*>(val_ptr);
+                        Handle<VALUE> ref_val_handle(nc_val_ptr,false);
+ 
+-                       push_back( MapItem(ref_key_handle,ref_val_handle) );
++                       this->push_back( MapItem(ref_key_handle,ref_val_handle) );
+                }
+        };
+ 

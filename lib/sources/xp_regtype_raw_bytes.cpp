@@ -34,6 +34,7 @@
 #pragma warning (disable: 4786)
 
 #include <iostream>
+#include <string.h>
 #include "../xparam/xparam_extend.h"
 #include "../xparam/xp_raw_bytes.h"
 #include "../src_include/xpv_link_patch.h"

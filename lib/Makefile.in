@@ -36,13 +36,13 @@ clean:
 	-rm -rf $(XPARAM_OBJ_PATH)/.libs $(ANTLR_OBJ_PATH)/.libs
 
 $(XPARAM_LOBJ_FILES) : $(XPARAM_OBJ_PATH)/%.lo : $(XPARAM_SRC_PATH)/%.cpp Makefile
-	libtool @CXX@ @CXXFLAGS@ @CPPFLAGS@ -I$(ANTLR_INCLUDE_PATH) -c -o $@ $<
+       libtool --mode=compile --tag=CC @CXX@ @CXXFLAGS@ @CPPFLAGS@ -I$(ANTLR_INCLUDE_PATH) -c -o $@ $<
 
 $(ANTLR_LOBJ_FILES) : $(ANTLR_OBJ_PATH)/%.lo : $(ANTLR_SRC_PATH)/%.cpp
-	libtool @CXX@ @CXXFLAGS@ @CPPFLAGS@ -I$(ANTLR_INCLUDE_PATH) -c -o $@ $<
+       libtool --mode=compile --tag=CC @CXX@ @CXXFLAGS@ @CPPFLAGS@ -I$(ANTLR_INCLUDE_PATH) -c -o $@ $<
 
 $(LIBRARY) : $(ALL_LOBJ_FILES)
-	libtool @CXX@ @LDFLAGS@ -o $(LIBRARY) $(ALL_LOBJ_FILES) @LIBS@ -rpath $(libdir) -version-info 1:0:0
+       libtool --mode=link --tag=LD @CXX@ @LDFLAGS@ -o $(LIBRARY) $(ALL_LOBJ_FILES) @LIBS@ -rpath $(libdir) -version-info 1:0:0
 
 .PHONY : all clean
 

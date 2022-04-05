@@ -68,7 +68,7 @@ namespace xParam_internal {
 			if (val_ptr)
 				val_handle = Handle<VALUE>( get_copy_of(*val_ptr) );
 
-			push_back( MapItem(key_handle,val_handle) );
+                       this->push_back( MapItem(key_handle,val_handle) );
 		}
 		
 		// val_ptr may be 0
@@ -81,7 +81,7 @@ namespace xParam_internal {
 			VALUE* nc_val_ptr = const_cast<VALUE*>(val_ptr);
 			Handle<VALUE> ref_val_handle(nc_val_ptr,false);
 
-			push_back( MapItem(ref_key_handle,ref_val_handle) );
+                       this->push_back( MapItem(ref_key_handle,ref_val_handle) );
 		}
 	};
 

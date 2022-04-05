@@ -62,7 +62,7 @@ install : $(LIBNAME) installinfo
 	$(INSTALL) -d $(DESTDIR)$(libdir)
 	$(INSTALL) -d $(DESTDIR)$(includedir)
 	$(INSTALL) -d $(DESTDIR)$(priv_includedir)
-	libtool $(INSTALL_PROGRAM) $(LIBNAME) $(DESTDIR)$(libdir)
+	libtool --mode=install $(INSTALL_PROGRAM) $(LIBNAME) $(DESTDIR)$(libdir)
 	$(INSTALL_DATA) $(XPARAM_PUBLIC_INCLUDE_FILES) $(DESTDIR)$(includedir)
 	$(INSTALL_DATA) $(XPARAM_INCLUDE_FILES) $(DESTDIR)$(priv_includedir)
 	$(install_command)

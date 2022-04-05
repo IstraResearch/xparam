@@ -41,6 +41,7 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
+#include <string.h>
 #include <assert.h>
 #include "antlr/InputBuffer.hpp"
 #include "../src_include/xParamLexer.hpp"
