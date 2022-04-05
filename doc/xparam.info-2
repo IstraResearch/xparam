@@ -1,0 +1,1147 @@
+This is xparam.info, produced by makeinfo version 4.1 from
+/tmp/linuxdoc-dir-24148/sgmltmp.xparam.info.2.
+
+   \input texinfo
+
+
+File: xparam.info,  Node: Saver and Loader,  Next: ParamSet,  Prev: xParse,  Up: The Programmer Interface
+
+Saver and Loader
+================
+
+   When we started testing XParam, we found that one use-case turned out
+to be particularly common. People wanted to communicate between
+programs using streams of objects: one program creates the objects and
+outputs them onto a stream; the other reads the stream and uses the
+objects. If this is what you need, here are two classes that you might
+find useful. Saver and Loader are both very small and very simple
+classes, but their functionality will make your programming life
+simpler and your programs easier to read.
+
+   "Saver" is used for serialization and "Loader" for deserialization.
+The syntax of their use is this:
+
+          Saver(my_ostream) << Val(my_variable);
+          Loader(my_istream) >> Var(my_variable);
+
+   This is equivalent to:
+
+          my_ostream << Val(my_variable) << endl;
+          my_istream >> Var(my_variable);
+
+   As can be seen, "Saver" has the added functionality of adding "endl"
+after each variable, which is effective as an object separator.
+
+   The added functionality in "Loader" is the method "bool
+Loader::eof()" which eats white-space in the stream and returns whether
+EOF has been reached.
+
+   Here is an explicit listing of the C++ interface provided by the
+Saver and the Loader classes.
+
+          class Saver {
+            public:
+              explicit Saver(std::ostream& os);
+              Saver operator<<(const Handle<ValueSource>&) const;
+          };
+          
+          class Loader {
+            public:
+              explicit Loader(std::istream& is);
+              bool eof();
+              Loader operator>>(const Handle<ValueSink>&) const;
+          };
+
+   As can be seen, Saver and Loader accept any "value source" and
+"value sink" variables, so PtrVal and PtrVar can also be used in this
+context.
+
+   Though it does not seem that Saver and Loader add much, they are
+very convenient to use when you need to handle streams of objects.
+Consider this program segment, for example
+
+          for(i=objlist.begin();i!=objlist.end();++i) {
+            Saver(cout) << PtrVal(i);
+          }
+
+   yields, on the standard output, a list of objects separated by
+linebreaks, which can be piped into a program with the following read
+loop:
+
+          Loader input(cin);
+          while(!input.eof()) {
+            input >> Var(i);
+            ... // do whatever you want with "i" here.
+          }
+
+
+File: xparam.info,  Node: ParamSet,  Next: Param,  Prev: Saver and Loader,  Up: The Programmer Interface
+
+ParamSet
+========
+
+   Class ParamSet is perhaps the most frequently used way to work with
+XParam. ParamSet is a class that allows you to work with as many named
+parameters as you want, simultaneously, and to use them as input
+parameters, output parameters, or both. Here is an example program
+using a ParamSet.
+
+          #include <string>
+          #include <xparam.h>
+          using namespace xParam;
+          
+          int main(int argc, char* argv[]) {
+            std::string name;
+            int age, experience;
+            double height;
+            bool result;
+            ParamSet ps;
+            ps << "This program determines whether the applicant will get the job."
+               << iParamVar(name,       "name       ! Applicant's name")
+               << iParamVar(age,        "age        ! Applicant's age")
+               << iParamVar(height,     "height     ! Applicant's height in meters")
+               << iParamVar(experience, "experience ! Years of experience the applicant has",Val(0))
+               << oParamVar(result,     "result     ! Did the applicant get the job?");
+            ps.input(argc,argv);
+            ... // here is where the decision is made.
+            ps.output(cout);
+            return 0;
+          }
+
+   This is all the code you need to provide all the interface for the
+example given in the user-interface section. Let's go over it, line by
+line:
+
+          #include <xparam.h>
+          using namespace xParam;
+
+   These two lines will probably appear in all your XParam programs.
+
+          ParamSet ps;
+
+   This line defines a ParamSet variable. It will store all the
+parameters we will use in this program, both input and output.
+
+          ps << "This program determines whether the applicant will get the job."
+
+   All additions to a ParamSet's data are made using operator <<. The
+simplest addition is that of a string. This string serves as a general
+description of what the program does, and will appear in the start of
+the information printed when the program is invoked with the "-help"
+option (see *Note The Registration Interface::  section).
+
+   The description string can also be given to the ParamSet as its
+constructor argument. If several such strings are given to a single
+ParamSet, they are appended to each other and separated by line breaks
+when printed.
+
+               << iParamVar(age,        "age        ! Applicant's age")
+
+   As can be seen, operator << can be chained, as usual, when inputting
+data to a ParamSet object. Beside strings, ParamSets can also accept
+objects declaring parameters. In XParam, these come in six different
+flavors. They are "iParamVar", "oParamVar", "ioParamVar",
+"iParamPtrVar", "oParamPtrVar" and "ioParamPtrVar". All have, more or
+less, the same format:
+
+   First, one must choose which of the six to use. "i" means that this
+parameter is meant for input only: it will be read when "ps.input()" is
+invoked, but its value will not be output when "ps.output()" is
+invoked. "o" is used for output parameters, such as the "result"
+variable in this case. "io" means that the variable will be both read
+and written. This is particularly useful for programs that accept
+information from one program, modify it slightly, and output it for use
+in another program.
+
+   The choice between "ParamVar" and "ParamPtrVar" depends on whether
+the variable that will be linked with this parameter (which is the first
+argument given - `age' in this case) is a pointer type or a non-pointer
+type. This is very similar to the distinction between "Var" and
+"PtrVar" that was discussed earlier, and here, too, the distinction
+could have been avoided, but was kept on purpose. Here, too, the
+variable can be a class instance, a struct instance, an variable of a
+built-in type or a variable of an enumerator type.
+
+   The second argument, after the name of the variable which will be
+associated with this parameter, is a string. This string signifies the
+name of the parameter, as it will be exported to the user. Here, the
+parameter's name is "age" and the variable it is associated with is
+also called "age".  We recommend that in all cases the parameter's
+exported name will be the same as the variable it is associated with.
+It is very intuitive and will save you many mistakes later on.
+
+   After the parameter name, there is another, optional part of the
+string, which begins with an exclamation mark. This is the parameter's
+description, which will be available to the user when invoking the
+program with the "-help" option. So, the string can be in either of two
+forms: "parameter_name" or "parameter_name ! description of the
+parameter". Legal parameter names are legal C++ variable names: the
+name must start with an alphabetic character or with an underscore, and
+all its characters must be alphanumerics or underscores. The
+description, on the other hand, can be any string.
+
+   There is an optional third argument. It is used in the "experience"
+parameter:
+
+               << iParamVar(experience, "experience ! Years of experience the applicant has",Val(0))
+
+   This optional third parameter is the default value. It is presented
+as a "value source". If no default value is given, the parameter is
+considered "required" and not entering it will cause error handling to
+occur. There is no third parameter for output-only parameters.
+
+   Here is ParamSet's full interface, including methods which were not
+discussed so far:
+
+          class ParamSet {
+          public:
+
+* Menu:
+
+* ParamSet Construction::
+* Basic Operations::
+* Help and Feedback::
+* ParamSet Modes::
+* ParamSet Warnings::
+* Querying a ParamSet::
+* Miscellania::
+
+
+File: xparam.info,  Node: ParamSet Construction,  Next: Basic Operations,  Up: ParamSet
+
+ParamSet Construction
+---------------------
+
+                  ParamSet(std::ostream& os=std::cout);
+
+   The default constructor is the most convenient way of initializing a
+ParamSet. In addition, you can specify the name of an output stream,
+which will be used by the ParamSet to output replies to a "-help"
+request. The help-stream can be set and changed after construction
+using the `set_hstream' method.
+
+                  explicit ParamSet(const std::string&);
+
+   Use this to initialize the general description string.
+
+                  ParamSet& operator<<(const std::string&);
+
+   Initialize the general description string if it hasn't been
+initialized yet, and append to it if it was already initialized.
+Consecutive strings appended to the general description strings are
+separated by line breaks.
+
+
+File: xparam.info,  Node: Basic Operations,  Next: Help and Feedback,  Prev: ParamSet Construction,  Up: ParamSet
+
+Basic Operations
+----------------
+
+                  ParamSet& operator<<(const Handle<Param>& param);
+
+   The "Handle<Param>" class is the general class handling iParamVar,
+oParamVar, ioParamVar, iParamPtrVar, oParamPtrVar and ioParamPtrVar
+parameters.
+
+                  void input(std::istream&, bool check=true);
+
+   ParamSets are not necessarily initialized from the command-line. Use
+this functionality to input data to the ParamSet from any std::istream.
+The "check" parameter, defaulting to "true", determines whether after
+inputting data from the stream the ParamSet will be checked to insure
+that all input parameters that do not have default values have been
+initialized.  Change the value of "check" to "false" if you intend to
+input parameters from several sources, and make it "true" only for the
+last call to input, to make sure that all required parameters received
+a value.
+
+                  void input(const int argc, const char* const argv[], bool check=true);
+
+   This method has the same functionality as the previous one, but
+accepts an argc/argv like input, instead of using an input stream. This
+is the most common way to use ParamSets. In addition to what is given
+by "input(istream)", this method has the added functionality that if
+the user invokes one of XParam's help-getting options, such as "myprog
+-help" and "myprog ! int", this routine also provides the requested
+help on the help-stream of the ParamSet and exits.
+
+                  void input(const char* const lpstr, bool check=true);
+
+   This method is equivalent to the previous one, but uses a line
+parameter string instead of an argc/argv input. A line parameter string
+is a white-space delimited string, including the entire command line.
+Under Windows, this is a convenient input format.
+
+                  void output(std::ostream&=std::cout) const;
+
+   Use this method to output all output parameters of your ParamSet. The
+parameters will be output in the same format as they are read, so output
+from one XParam program can easily be used as input to another XParam
+program.
+
+                  void check(void) const;
+
+   This method checks that no input variable is still without a value,
+but does this without receiving any more inputs. Using this method after
+method "input" has the same effect as turning the "check" flag in
+"input" to true.
+
+   For more ways of ParamSet inputting and outputting, see *Note
+Miscellania:: , below.
+
+
+File: xparam.info,  Node: Help and Feedback,  Next: ParamSet Modes,  Prev: Basic Operations,  Up: ParamSet
+
+Help and Feedback
+-----------------
+
+                  void set_hstream(std::ostream& os);
+
+   Set the help-stream used by the ParamSet. The help-stream is the
+output stream on which the ParamSet outputs replies to a "-help"
+request. If the help-stream is not set by a call to this method or at
+construction time, it defaults to the standard output stream
+(std::cout).
+
+                  void info(void) const;
+
+   This method prints a table listing all the usage information of the
+paramset to the help-stream of the ParamSet. It is the method invoked
+when the user runs the program with the "-help" option.
+
+                  bool feedback_enabled(bool enabled);
+                  bool feedback_enabled(void) const;
+
+   It is often useful to provide feedback to the XParam user. Just like
+you expect to see characters on the screen as you type them, so does
+the XParam user expect to see some confirmation that XParam understood
+his or her input correctly, at the very start of the program's run. The
+first of these functions allows you to enable user feedback, which is
+printed when a call to `ParamSet::input()' is made. The second allows
+you to query the feedback mode.
+
+                  void write_feedback(void) const;
+
+   If, for some reason, you want user feedback to be provided at a time
+other than immediately after the call to `input()', use this function.
+It will print the feedback when it is called, regardless of whether
+feedback is enabled or disabled.
+
+                  void set_feedback_stream(std::ostream& os);
+
+   By default, XParam outputs feedback to the standard error stream.
+(Unlike help, which defaults to the output stream.) This default can be
+overridden by a call to `set_feedback_stream()'.  *Note ParamSet
+Warnings::
+
+   are also output to the feedback stream.
+
+                  int max_feedback_length(int n);
+                  int max_feedback_length(void) const;
+
+   Unlike XParam output, which is meant to be both human and machine
+readable, feedback is designed merely to help the user do some sanity
+checking on his or her input. It would not be very practical if the
+user was presented with a twenty-pages long dump of a particularly
+complex object, while other objects, smaller and more likely to have
+really originated from the user's command-line, are squeezed out of the
+terminal's memory.
+
+   For this reason, XParam feedback for each parameter's value can be
+truncated after a specific number of characters. This number is
+controlled by `max_feedback_length', which can be both set and get by
+these two methods. Setting `max_feedback_length' to zero is equivalent
+to not truncating at all, which is the default.
+
+
+File: xparam.info,  Node: ParamSet Modes,  Next: ParamSet Warnings,  Prev: Help and Feedback,  Up: ParamSet
+
+ParamSet Modes
+--------------
+
+                  MultipleAssignMode multiple_assign(MultipleAssignMode m);
+
+   This is the first of several methods meant to control the input mode.
+This particular method accepts either one of three values: FIRST_HOLDS,
+LAST_HOLDS or IS_ERROR. This value determines how XParam will react if
+the user attempts to assign a value to the same parameter more than
+once. You can also use the syntax "`paramset' <<
+MultipleAssign(`mode')" with the same effect.  The default value of
+this option is LAST_HOLDS.
+
+                  MultipleAssignMode multiple_assign(void) const;
+
+   This method allows you to query the current mode without changing it.
+
+                  MatchMode match(MatchMode m);
+
+   This method lets you control the parameter name-matching algorithm.
+You can specify EXACT, if you want people to spell out the entire
+parameter name, or PREFIX, if any unambiguous prefix will do. The
+PREFIX mode is the default. Note that if any parameter name is the
+prefix of a different parameter name, a value that is a prefix to both
+is not considered an ambiguity. The shorter value prevails.
+
+                  MatchMode match(void) const;
+
+   Analogously to the multiple_assign directives, one can use this
+method to query the mode, and can use "`paramset' << Match(`mode')" as
+an alternate syntax for controlling the mode.
+
+
+File: xparam.info,  Node: ParamSet Warnings,  Next: Querying a ParamSet,  Prev: ParamSet Modes,  Up: ParamSet
+
+ParamSet Warnings
+-----------------
+
+   The default behavior for ParamSets is to halt on all errors.
+However, some errors are recoverable. If you want to receive
+recoverable problems as warnings, rather than have XParam throw an
+error on them, use the following methods to set `warning_is_error' to
+false:
+
+                  bool warning_is_error(bool val);
+                  bool warning_is_error(void) const;
+
+   As usual, the first of these methods sets the value and the second
+reports it. Warnings are reported on the feedback stream.
+
+   Currently, XParam reports warnings in two scenarios.
+  1. When the user assigns to a parameter unfamiliar to the ParamSet
+
+  2. When the user assigns to a parameter which can only be matched
+     ambiguously. This can happen in `PREFIX' mode, if the parameter
+     name given by the user is a prefix of two distinct parameters in
+     the ParamSet
+
+   Though normally these problems are user errors and should be
+reported as such, sometimes it is preferable to demote them to
+warnings. Consider, for example, a program that uses XParam to output a
+ParamSet to a file, which is later to be read by several other
+programs. Each of the reader programs may need a different subset of
+the parameters in the ParamSet for its particular job, and it need not
+know of the rest of the parameters. In such a case, extraneous
+parameters are not erroneous.
+
+   Of course, you may argue that in this particular case, even a
+warning message will be superfluous. For this reason, XParam provides
+the following methods:
+
+                  bool ignore_unexpected(bool ignore);
+                  bool ignore_unexpected(void) const;
+
+   These set and get the `ignore_unexpected' flag, which makes XParam
+ignore the first of the two warning situations completely, treating it
+as a legal initialization. By default `ignore_unexpected' is, of
+course, set to false. Use care when switching this flag on, because it
+will silently discard erroneous initializations, which can be due even
+to a simple typing mistake.
+
+   As a last safety net, we have designed this flag only to control the
+behavior of the first of the two warning scenarios. Ambiguous prefixes
+are still reported as usual (as errors or warnings, depending on your
+warning-handling state).
+
+
+File: xparam.info,  Node: Querying a ParamSet,  Next: Miscellania,  Prev: ParamSet Warnings,  Up: ParamSet
+
+Querying a ParamSet
+-------------------
+
+                  std::vector<std::string> names(void);
+
+   This is the first of two methods whose purpose it is to let you query
+the ParamSet about the parameters in it. This particular method returns
+a list of the names of all parameters stored in the ParamSet.
+
+                  const Param& operator[](const std::string& name) const;
+
+   Once you know which names you want to query, you can use `operator[]'
+to give you more information regarding the parameter. The next section
+will detail this information at greater length. Note that this operator
+is affected by the current mode. If you're using `Match(EXACT)', the
+operator will search for a parameter with this exact name. If you're
+using `Match(PREFIX)' it will take this to be a prefix, and attempt to
+complete it. In either case, if the search is unsuccessful, whether
+because no such parameter exists or because the search resulted in an
+ambiguity, an exception is thrown. (see the *Note Error Handling::
+section for further details.)
+
+
+File: xparam.info,  Node: Miscellania,  Prev: Querying a ParamSet,  Up: ParamSet
+
+Miscellania
+-----------
+
+                  void import(ParamSet& ps);
+
+   See section *Note Working with Several ParamSets::  for a complete
+explanation of this method.
+
+          };
+          
+          std::ostream& operator<<(std::ostream&, const ParamSet&);
+
+   Usage of "operator<<" on a ParamSet is equivalent to outputting it
+to the std::ostream.
+
+          std::istream& operator>>(std::istream&, ParamSet&);
+
+   Usage of "operator>>" on a ParamSet is equivalent to inputting it
+from the std::istream. Note that this keeps input checking on.
+
+
+File: xparam.info,  Node: Param,  Next: Polymorphism and Dynamic Loading,  Prev: ParamSet,  Up: The Programmer Interface
+
+Param
+=====
+
+   When you invoke `operator[]' on a ParamSet, you get a reference to
+an instance of class xParam_internal::Param. The interface this class
+provides, allows you to query the parameter. Here it is:
+
+          class Param {
+          public:
+                  bool is_input() const;
+
+   Is the parameter an input parameter?
+
+                  bool is_output() const;
+
+   Is it an output parameter?
+
+                  bool was_assigned_to() const;
+
+   Did the user explicitly assign a value to this parameter?
+
+                  bool has_default() const;
+
+   Does this parameter have a default value?
+
+                  bool has_given_value() const;
+
+   Did XParam assign a value to this parameter (whether because of a
+default value or because of an explicit user assign)?
+
+                  std::string name() const;
+
+   The parameter's name. This is its full name, even if you found it
+using a prefix.
+
+                  std::string description() const;
+
+   The description string that was assigned to this parameter.
+
+                  const std::type_info& static_type_info() const;
+
+   The static type info of the queried parameter's type.
+
+          };
+
+
+File: xparam.info,  Node: Polymorphism and Dynamic Loading,  Next: Error Handling,  Prev: Param,  Up: The Programmer Interface
+
+Polymorphism and Dynamic Loading
+================================
+
+   We have already mentioned that the variables assigned to need not be
+class instances. They can just as well be pointers to classes, in which
+case PtrVar replaces Var, iParamPtrVar replaces iParamVar and
+ioParamPtrVar replaces ioParamVar. When taking advantage of this
+feature, XParam, just like C++, allows polymorphism. That is, it allows
+to assign an object of type "Derived*" to a variable of type "Base*".
+XParam provides this feature automatically, and there is nothing you
+need to add to your program to enable it.
+
+   This feature can be put to good use, especially in the context of
+strategy management. The user can specify the desired strategy by
+choosing a derived class of the base class serving as an interface.
+The execution line
+
+          ~/bin> a.out 'url=HTTP("sourceforge.net")'
+
+   will work even if the variable connected with "url" is a general
+"URL*" object. The user chose the protocol HTTP by choosing class HTTP
+which is, in the example, a derived class from URL. In addition, the
+XParam interface also allows the user to configure her strategy by
+supplying variables to the class constructor.
+
+   All this would have not been as useful as it is, if XParam hadn't
+allowed dynamic loading. However, the XParam library allows you to load
+any class the user specifies at run-time. So, for example, the program
+connected to the previous execution example may look like this:
+
+          #include <xparam.h>
+          
+          class URL {
+            public:
+              virtual void display(void) const=0;
+              virtual ~URL(void) {}
+          };
+          
+          int main(int argc, char* argv[]) {
+            URL* url;
+            ParamSet ps;
+            ps << iParamPtrVar(url,"url",PtrVal((URL*)NULL));
+            if (url) { // if "url" wasn't initialized, it would assume the default value, null.
+              url->display(); // display the URL. The program contains no information regarding how this is to be done.
+            }
+            return 0;
+          }
+
+   This program has no knowledge of an "HTTP" class, nor of any way of
+displaying URLs, but the execution line can still work: when necessary,
+XParam will automatically dynamically link the class library containing
+the HTTP class and use it. No programmer intervention whatsoever is
+necessary. (Everything needed to allow this is outside the scope of the
+C++ program, and will be described in detail in *Note The Registration
+Interface::  section.)
+
+   Note: some platforms may not have any dynamic loading capability.
+In order for XParam to compile properly on these platforms, use the
+NO_DYNAMIC_LOADING flag at compile time. XParam does not currently
+support dynamic loading in Windows, so you should link your classes and
+their registration statically there. Polymorphism is supported in
+Windows as usual.
+
+
+File: xparam.info,  Node: Error Handling,  Next: Working with Several ParamSets,  Prev: Polymorphism and Dynamic Loading,  Up: The Programmer Interface
+
+Error Handling
+==============
+
+   Throughout the operation of XParam, several types of errors can
+occur.  One is illegal user input given at run-time. (An example of
+this is trying to assign a value of incompatible type to a parameter.)
+The second is illegal programmer input which could not have been
+detected at compile time.  (An example of this is defining two
+parameters with the same name.)  Finally, there are errors encountered
+inside user class constructors and output functions, which are run by
+XParam.
+
+   As for the first two kinds of errors, XParam handles them by throwing
+an `xParam::Error' exception. This is a class derived from
+`std::exception' and can likewise give an informative description of
+the problem using the `what()' method.
+
+   As for the third kind of error, the kind encountered in user code,
+the situation is a little bit trickier. If the user code aborts program
+execution, there is nothing to be done about it. If, however, the code
+throws an exception, this exception is caught by XParam, which will
+then throw its own `xParam::Error' exception class, describing where,
+exactly, the error was encountered. If the user exception's type is,
+itself, any derivative of `std::exception', The exception generated by
+XParam will include in its description (available by the `what()'
+method) the description of the original exception which was thrown.
+
+   As a rule, no XParam function or method will ever throw anything
+other than an `xParam::Error' exception. In one special case, XParam
+throws an exception of type `xParam::MatchError', which is a derivative
+of `xParam::Error'. This class is thrown when a ParamSet is queried
+about a non-existing or an ambiguous parameter. (see the *Note Querying
+a ParamSet::
+
+   subsection for details.)
+
+   The `xParam::MatchError' class has the added functionality of
+providing the method
+
+          bool xParam::MatchError::ambiguous(void) const throw();
+
+   which returns true if the queried parameter was ambiguous and false
+if it was not found in the ParamSet at all.
+
+   To conclude, here is the example given in the introductory section
+once again, but this time, complete with error handling.
+
+          #include <iostream>
+          #include <xparam.h> // The XParam library
+          #include "shapes.h" // This is where your shape classes are defined
+          using namespace xParam;
+          using namespace std;
+          
+          int main(int argc, char* argv[]) {
+            Composite my_shape;
+            ParamSet ps; // define a parameter set
+            try {
+              ps << iParamVar(my_shape,"my_shape"); // define variables in the set
+              ps.input(argc,argv); // parse the command line into the set
+              my_shape.draw(); // my_shape is already initialized and ready to use
+            } catch(Error e) {
+              cerr << "Got the following error - " << endl << e.what() << endl;
+              cerr << "Aborting." << endl;
+            }
+            return 0;
+          }
+
+
+File: xparam.info,  Node: Working with Several ParamSets,  Next: Getting information from XParam,  Prev: Error Handling,  Up: The Programmer Interface
+
+Working with Several ParamSets
+==============================
+
+   Suppose that you are writing a Space Invaders game, where the
+algorithms for drawing and moving the aliens are loaded at run time
+into the program.  Your main program doesn't have all the information
+about the various aliens. It simply calls method "Move" and method
+"Draw" of an object of a class derived from "Alien".
+
+   So far, so good. Using abstract interfaces of this sort is
+commonplace in object-oriented programming. What if, however, the Alien
+classes needed to be configured? Worse, what if you couldn't know, in
+advance, what extra information each alien race needs?
+
+   Here is a convenient solution:
+
+          Class Alien {
+            public:
+              Alien(ParamSet& ps) { set_up(ps); }
+              virtual void set_up(ParamSet& ps) const=0;
+              virtual void initialize(const ParamSet& ps)=0;
+          
+              virtual void Move(void)=0;
+              virtual void Draw(void)=0;
+          };
+
+   You give the abstract Alien your ParamSet. In the method `set_up'
+the Alien adds "iParamVar" entries into the ParamSet, to indicate what
+information it needs. Then, after the call to `input()' in the main
+program, and after you have read all the information that the main
+program needs out of the ParamSet, you can return this ParamSet back to
+the Alien, for it to extract the rest of the information.
+
+   This is a good solution. Sometimes, in fact, it is the best solution.
+However, it does have its drawbacks. First and foremost of these is that
+the Alien now has access to all your parameters, and can wreak havoc
+there.  Consider, for example, what would happen if the Alien, during
+`set_up' changed the input mode from PREFIX to EXACT? The Aliens do not
+have to be malicious for this to happen: a simple programming oversight
+can affect your whole program. So, what do we do? This is clearly not
+the encapsulation we strived for when we first took up a course in
+object oriented design!
+
+   Perhaps you will be more pleased with this, more elegant solution:
+
+          Class Alien {
+            public:
+              virtual const ParamSet& set_up(void) const=0;
+          
+              virtual void Move(void)=0;
+              virtual void Draw(void)=0;
+          };
+
+   The Alien now manufactures a ParamSet object. This object can have
+"iParamVar" entries with references to local Alien members, which are
+not visible from the outside. It doesn't matter. When the Alien has
+finished constructing the ParamSet, it sends the ParamSet to the main
+program. In the main program you can now write:
+
+          ParamSet ps;
+          ps.import(alien->set_up());
+          ps.input(argc,argv);
+
+   This causes all the parameters defined by the alien to be imported
+into the global ParamSet. The global ParamSet is not affected by this
+action in any other way. The user can assign values to the parameters,
+and these will directly affect the Alien's members.
+
+   The Alien's original ParamSet is not required to remain in scope. It
+can be a local variable. If the Alien keeps the ParamSet, it will be
+able to query the parameters inside it, as if is was its ParamSet that
+had executed the `input()' command, and not the global ParamSet. The
+Alien does not, however, gain any access to parameters other than its
+own.
+
+   Note that for all this to work, the variables referenced by the
+Alien's ParamSet must, of course, remain within their definition scope
+(though they may be invisible). What this means is that keeping
+references to members of an Alien instance is OK (as long as the Alien
+is not destructed), but using references to local `set_up' variables is
+not. If the referenced objects go out of their definition's scope
+before the ParamSet goes out of its scope, it will contain dangling
+pointers.
+
+   The advantage of this method is in its simpilicity and the fact that
+it does not require you to register new types. In the future, we will
+provide a solution that will be adequate for heavy-duty handling of
+multiple paramsets as well, and this solution is likely to become
+deprecated.
+
+
+File: xparam.info,  Node: Getting information from XParam,  Next: How Pointers Behave in XParam,  Prev: Working with Several ParamSets,  Up: The Programmer Interface
+
+Getting information from XParam
+===============================
+
+   XParam offers you two functions in order to get information from your
+XParam classes. In a sense, XParam is returning a favor here: after the
+registrator (see *Note The Registration Interface:: ) explicitly gave
+the introspection information of her classes to XParam, XParam gives
+you, the programmer, an interface to this information, for whatever
+usage you may have for it. Here are the two functions:
+
+          string xparam_name(const type_info& type);
+          string xparam_help(const string& type_name);
+
+   The first function, `xparam_name' is meant to give you the
+registered XParam class name for a real C++ class. For example, running
+`xparam_name(typeid(unsigned char))' will return `"uchar"'.
+
+   The second function, `xparam_help' will give you extensive
+information about a class, including its base types, types derived from
+it, its constructors, and conversion options to it. The format is
+self-explanatory. So, if you want introspection information about
+`class duck' all you have to do is to run
+
+          cout << xparam_help(xparam_name(typeid(duck)));
+
+   and all the introspection information will be printed for you.
+
+   The function `xparam_help' is the function that is invoked when
+running "my_program ! my_class", discussed in the *Note Complex
+Parameter Values::  section of *Note The Registration Interface:: .
+
+
+File: xparam.info,  Node: How Pointers Behave in XParam,  Next: RawBytes,  Prev: Getting information from XParam,  Up: The Programmer Interface
+
+How Pointers Behave in XParam
+=============================
+
+   Though all the relevant information about pointers was mentioned
+before, here is a concise summary of the nuances you should be aware of
+when using pointers in XParam.
+
+   First off, consider the following program segment:
+
+          int* i;
+          ParamSet ps;
+          ps << ioParamPtrVar(i,"i");
+          ps.input();
+
+   There are several ways in which variable `i' can be initialized as a
+result of this code segment. As part of the input, the user can, for
+example, initialize `i' by adding an "i=7". The result, in C++ terms,
+will be equivalent to "i=new int(7)". This is the typical case. You
+will need to "delete i;" at the end of your program.
+
+   The exception to the rule that user initializations cause a call to
+`new' is when the user inputs "i=NULL" or one of its variations (e.g.
+"i=int(NULL)"). In this case, `i' itself will be assigned the value
+`NULL' and not, as in the previous case, `*i'.  No call to `new' is
+executed and you do not need to run `delete'. (Though you can. C++ does
+not consider deleting a NULL pointer to be an error. The deletion does
+nothing, but the call does not guarantee that the pointer's value will
+remain NULL, so do not attempt consecutive deletions.)
+
+   However, there is yet a third option of what can happen during the
+call to "ps.input();". The user may ignore parameter `i' altogether and
+not give it a value at all. In this case, XParam will throw an
+exception, because `i' has no default value.
+
+   If `i' had had a default value, then not entering a value explicitly
+would have caused `i' to be initialized according to the default value
+given, in a very similar way: a default value of "Val(7)" would have
+caused an effect equivalent to "i=new int(7);" and a default value of
+"PtrVal((int*)NULL)" would have caused an effect equivalent to
+"i=NULL;".  Note that the `NULL' must be cast explicitly to `int*', or
+else XParam will not know how to make your `void*' value into a legal
+default value for parameter `i'.
+
+   When using default values, `NULL' is not the only pointer value you
+can apply. Any `int*' value can be used.  Consider, for example, this
+code segment:
+
+          int *default=new int(7), *i;
+          ParamSet ps;
+          ps << ioParamPtrVar(i,"i",PtrVal(default));
+          delete default;
+          ps.output();
+          delete i;
+
+   Here, `default' can be any valid pointer value. The important things
+to note about this code segment are:
+   * Do not forget to use "PtrVal" instead of "Val" when using pointers.
+
+   * The default value is your pointer. You allocated it and you are
+     responsible for deleting it.
+
+   * The default value is not the pointer actually used in `i'.  The
+     value from `default' is copied into a new place, which is
+     allocated by XParam. Therefore, you have to delete, separately,
+     both `i' and `default'. Just to emphasize this point, the pointer
+     `default' in the example was deleted before the value of parameter
+     `i' was output.
+
+   In all examples up until now, the pointer variable to be used as a
+parameter was not initialized prior to the XParam calls.  This is OK
+because this pointer's original value is discarded without deletion on
+the first time that XParam assigns a value to it. If you do explicitly
+allocate memory for it, make sure you deallocate it before you enter `i'
+into a paramset, or else your memory will be left dangling.
+
+   Here's a common mistake using pointers in XParam: it is tempting to
+believe that if you enter a non-NULL default value for a pointer
+variable, then you do not have to check that this pointer is not NULL
+after calls to XParam. This is not the case. When you run `input()' the
+user can still explicitly enter "i=NULL" and this will supersede the
+default value.
+
+   If you really do not want NULL to be an option, and are actually
+only using pointers instead of integers for your own convenience, then
+you don't need to use ParamPtrVar at all. Do this instead:
+
+          int* i=new int;
+          ParamSet ps;
+          ps << ioParamVar(*i,"i",Val(0));
+          ps.input();
+
+   In this example, XParam is completely unaware that the integer it is
+working on is on the heap. You allocated it and you should deallocate
+it, but for XParam it is simply an integer and can, of course, not take
+any `NULL' or other non-integer values.
+
+   This solution will not work, of course, if the reason you're using
+pointers is to allow polymorphism. Here, XParam should be made aware of
+the fact that it is dealing with pointers, and therefore a NULL value
+is a legitimate option.
+
+   One last point: how does memory handling work in the presence of
+exceptions? XParam will only assign deleteable values to your pointers.
+Therefore, if you're really worried about making your code
+exception-safe, here's how to do it:
+
+          Shape* shape=NULL;
+          ParameterSet ps;
+          try {
+            ps << iParamPtrVar(shape,"shape");
+            . . .
+          } catch (Error e) {
+          }
+          delete shape;
+
+   Because XParam guarantees that any value it assigns to `shape' will
+be deleteable, and because `shape"s original value, `NULL', is also
+deleteable, you can safely delete the pointer, wherever an exception
+may have occurred, and whether or not an exception did occur.
+
+
+File: xparam.info,  Node: RawBytes,  Prev: How Pointers Behave in XParam,  Up: The Programmer Interface
+
+RawBytes
+========
+
+   Suppose you have a large chunk of binary data that you want to
+serialize in an XParam way (for example, because you want to make sure
+that it is saved in a platform-independent format, or because you want
+to save it together with other objects that provide meta-data for it).
+
+   Saving this data, in XParam, as an `std::vector<unsigned char>' is a
+horrible waste of space. A more space-efficient method would have been
+to convert the data to a large `std::string' and to save it as such,
+but that method is unconvenient, slow, error-prone and - worst of all -
+it still doesn't solve the space problem. The resulting string can be
+saved in XParam into a space several times larger than what it can
+optimally take.  Is there no way to condense the data somehow?
+
+   Well, if you want to save up to two gigabytes of data, there is.
+It's called `RawBytes'. `RawBytes' is a class inherited from
+`std::vector<unsigned char>' that can solve your problem. Inside your
+program, it behaves like a perfectly normal class. It even supports an
+XParam user-defined conversion to a `std::vector<unsigned char>', so
+when you're reading one from an XParam initialization file, you don't
+even have to know about it most of the time. However, when this class
+is saved using XParam serialization, it forms a new literal. This
+literal has 13 bytes of overhead over what your data minimally needs,
+and has all the advantages of regular XParam serialization (except, of
+course, human readability, because `RawBytes' is saved in a binary
+format).
+
+   Here is a description of the `RawBytes' literal save format. Because
+you are likely to use XParam both to write it and read it, you will
+probably never need to know how, exactly, it is saved, but here it is,
+nevertheless, for completion:
+   * 6 bytes of a constant header: "raw<<<"
+
+   * 4 bytes of size in bytes (signed, big-endian).
+
+   * A byte-wise dump of the binary data.
+
+   * 3 bytes of a constant footer: ">>>"
+
+   Though not human-readable, this format lets you, at least, see where
+your binary data is, as it will always be enclosed inside these visible
+delimiters: "raw<<< ... >>>"
+
+
+File: xparam.info,  Node: The Registration Interface,  Next: Installing XParam,  Prev: The Programmer Interface,  Up: Top
+
+The Registration Interface
+**************************
+
+* Menu:
+
+* General Registration Interface::
+* The Basic Structure::
+* Class Declarations::
+* Inheritance::
+* Constant Variables::
+* Enumerators::
+* Argument Passers::
+* Constructors::
+* Creators::
+* Conversion Functions::
+* Vectors Lists Sets Maps and Pairs::
+* Output::
+* HVL TypedValueMap and RawBytes::
+* Dynamic Loading::
+* Checking for Blocked Registration Calls::
+* Creating Template Registration Commands::
+
+
+File: xparam.info,  Node: General Registration Interface,  Next: The Basic Structure,  Up: The Registration Interface
+
+General Registration Interface
+==============================
+
+   The most involved and least frequently required interface to the
+XParam library is the registration interface. In contrast to the user's
+interface, that is required whenever a program using XParam is invoked,
+and the programmer's interface, that should be used whenever you write
+a new program with XParam parameter handling, registration is needed
+only when you want XParam to learn how to use new classes, or when the
+interface to an already registered class has changed.
+
+   In principle, to handle user inputs such as `a=7', where `a' is, for
+example, an instance of class `Duck', XParam should find the best path
+from `7' to a `Duck' variable. If `Duck' has a non-explicit constructor
+from `int', that can, of course, be used.  If, instead, it only has a
+non-explicit constructor from `double', then the `7' integer should be
+converted to a `double', and from there to `Duck'. If, on the other
+hand, the only non-explicit constructor `Duck' has is from `char', then
+the `7' should not be taken as an integer value at all, but as an
+abbreviation of `'7", using XParam's relaxed type matching. This was
+only a very simple example, but arbitrarily complex implicit conversion
+paths can also be generated by the user.  Consider, for example, the
+user's command mentioned in the introduction:
+
+          ~/bin>a.out 'my_shape=[ Circle(Point(50,50),50), Circle(Point(25,75),10),
+          Circle(Point(75,75),10), Arc(Point(25,50), Point(50,25), Point(75,50)) ]'
+
+   To parse this line correctly, XParam needs considerable knowledge of
+the existing classes and the inter-connections between them.
+
+   All the information required by XParam exists as part of the classes'
+interface. Unfortunately, because C++ has no reflection capability, in
+the registration process the registrator has to make this information
+explicitly available for XParam's usage. As will shortly be
+demonstrated, the registration process itself is entirely
+non-intrusive, enabling third-party registration. The only restriction
+XParam-registered classes have is that if they are concrete, they
+should support a public copy constructor and be assignable.  Because of
+this, classes can be developed by one person, entirely unaware of
+XParam, then registered by a second person and finally used by a third
+person.  For this to be possible, the class interface, developed by the
+first person, should be available for the registering person, and code
+developed by the registrator and the programmer should be linked
+together (though it can be compiled separately) into the running
+program.
+
+   To emphasize this point, consider that in order to run the example
+quoted above, classes `Circle', `Arc' and `Point' weren't necessarily
+even programmed at the time the main program was compiled and even
+executed. Trying to parse the command-line, XParam can dynamically load
+both the registration code and the class implementations at run-time.
+
+
+File: xparam.info,  Node: The Basic Structure,  Next: Class Declarations,  Prev: General Registration Interface,  Up: The Registration Interface
+
+The Basic Structure
+===================
+
+   In the next sections, the exact contents of registration files will
+be elaborated, but the basic structure of all registration files is
+exactly the same. First, note that XParam's registration files, as was
+hinted at in the first section, are C++ files. They should be compiled
+as any C++ file and linked with the rest of your program.  This can be
+confusing, because registration files don't look like they are
+C++-compilable files. What they do look like, is this:
+
+          #include <xparam_extend.h>
+          #include "point.h"
+          #include "point_output.h"
+          using namespace xParam;
+          
+          PARAM_BEGIN_REG
+          
+            PARAM_CLASS(Point);
+              param_ctor<Point>(ByVal<int>("x"),ByVal<int>("y"));
+              param_output<Point,Point_output_functor>();
+              param_vector<Point>();
+          
+          PARAM_END_REG
+
+   To understand this format, let's go over it line by line:
+
+          #include <xparam_extend.h>
+
+   This file contains the declarations needed for XParam registration.
+
+          #include "point.h"
+
+   The interface of the registered class should be visible to the
+registration code.
+
+          #include "point_output.h"
+
+   In this particular case, we separated the implementation of `Point"s
+output to a different file.  Consult the section about *Note Creators::
+to learn about other header files you may want to `#include' to your
+registration code.
+
+          using namespace xParam;
+
+   You don't need this line, of course, but if you don't use it, you
+will have to add the `xParam::' prefix to virtually everything in the
+registration code, so we highly recommend it.  All our examples of
+registration code will assume the inclusion of this line.
+
+   Finally, we reach the registration code itself. It is denoted by a
+`PARAM_BEGIN_REG'/`PARAM_END_REG' block. The purpose of this block is
+to create an environment in which commands are executed before `main()'
+is entered. The two macros set up an anonymous namespace and define a
+class within that namespace, and an instance of the class. The commands
+placed inside a `PARAM_BEGIN_REG'/`PARAM_END_REG' block compose the
+class's constructor, and are therefore executed.  All XParam's
+registration commands are simple function calls and constructors for
+temporary objects. The `PARAM_BEGIN_REG'/`PARAM_END_REG' block allows
+these function calls to be executed and the registration to take effect
+before `main()' is reached.
+
+   You can, of course, run the registration commands by other means,
+but it is our opinion that this is the simplest and most
+straightforward way.
+
+   One `PARAM_BEGIN_REG'/`PARAM_END_REG' pair is good to put all your
+registration commands in, but if you want you can separate your
+registration commands into as many blocks as you want. This can be
+effective if you want to put ordinary C++ code in your registration
+files. The `Point_output_functor', for example, could have been written
+directly in the `Point' registration file, and splitting the file into
+several registration blocks can help you place the output functor near
+the registration command relevant to it.
+
+   An XParam program can link in as many registration files as it
+wishes, and as many classes as you wish can be registered in the same
+registration block.
+
+   Ordinary C++ code should not be placed inside a registration block,
+unless you want it to run prior to your `main()'.
+
+   In the next section we will go over all the registration commands
+supplied by XParam for use in registration blocks.
+
+   Note: it is not an error to repeat a registration call more than
+once, as long as the repetitions are exact duplicates. XParam will
+recognize the repetition and will ignore all but the first registration
+call.
+

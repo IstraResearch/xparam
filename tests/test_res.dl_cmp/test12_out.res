@@ -1,0 +1,8 @@
+Testing constructors...
+v = vector<everything>([everything("From bool"),everything("From char"),everything("From unsigned char"),everything("From short"),everything("From unsigned short"),everything("From int"),everything("From unsigned int"),everything("From unsigned int"),everything("From long"),everything("From long"),everything("From unsigned long"),everything("From unsigned long"),everything("From unsigned long"),everything("From unsigned long"),everything("From double"),everything("From float"),everything("From string"),everything("From long long"),everything("From unsigned long long"),everything("From vector of bool"),everything("From vector of char"),everything("From vector of unsigned char"),everything("From vector of short"),everything("From vector of unsigned short"),everything("From vector of int"),everything("From vector of unsigned int"),everything("From vector of unsigned int"),everything("From vector of long"),everything("From vector of long"),everything("From vector of unsigned long"),everything("From vector of unsigned long"),everything("From vector of unsigned long"),everything("From vector of unsigned long"),everything("From vector of double"),everything("From vector of float"),everything("From vector of string"),everything("From vector of long long"),everything("From vector of unsigned long long"),everything("From long double"),everything("From long double"),everything("From vector of long double"),everything("From vector of long double")])
+;
+Testing conversions...
+vll = vector<longlong>([longlong(1L)])
+vull = vector<ulonglong>([ulonglong(1UL)])
+vld = vector<long_double>([1.0L,1.0L])
+;

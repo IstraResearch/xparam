@@ -1,0 +1,4 @@
+@test_file2.txt
+c=["I am a string",duck("ducks can be constructed from strings")]
+d=@test_file3.txt
+#d= This is a comment

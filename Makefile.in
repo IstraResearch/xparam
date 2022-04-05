@@ -1,0 +1,140 @@
+@SET_MAKE@
+
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+INSTALL_INFO = @INSTALL_INFO@
+
+XPARAM_INCLUDE_FILES := @XPARAM_INCLUDE_FILES@
+XPARAM_SOURCES = $(wildcard lib/sources/*.cpp)
+
+XPARAM_HEADERS=$(patsubst lib/xparam/%,%,$(XPARAM_INCLUDE_FILES))
+
+XPARAM_PUBLIC_HEADERS=xparam.h xparam_extend.h
+
+XPARAM_PUBLIC_INCLUDE_FILES=\
+  $(foreach FILE,$(XPARAM_PUBLIC_HEADERS),lib/pub_include/$(FILE))
+
+SUB_TARGETS = lib tests @subdirs@
+CLEAN_TARGETS = $(patsubst %,%_CLN, $(SUB_TARGETS))
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+infodir=@infodir@
+priv_includedir=$(includedir)/@priv_includes@
+
+XPARAM_INSTALLED_INCLUDE_FILES=$(foreach FILE,$(XPARAM_HEADERS),$(priv_includedir)/$(FILE))
+XPARAM_INSTALLED_PUBLIC_INCLUDE_FILES=\
+  $(foreach FILE,$(XPARAM_PUBLIC_HEADERS),$(includedir)/$(FILE))
+
+LIBNAME=lib/lib/libxparam.la
+
+all : library
+
+library : $(LIBNAME)
+
+$(LIBNAME) : lib/Makefile.depend $(XPARAM_SOURCES) $(XPARAM_INCLUDE_FILES) $(XPARAM_PUBLIC_INCLUDE_FILES)
+	-$(MAKE) -C lib
+
+examples :
+	-$(MAKE) -C examples
+	@echo
+	@echo "==============================================================================="
+	@echo "DON'T FORGET TO \"export" XPARAM_CLASSPATH=`pwd`/examples/classpath "\" BEFORE YOU RUN THE EXAMPLE CODE!"
+	@echo "==============================================================================="
+
+check : tests/Makefile.depend
+	-$(MAKE) -C tests clean
+	-$(MAKE) -C tests
+
+prepare_check :
+	-$(MAKE) -C tests prepare
+
+ifeq (x$(DESTDIR),x)
+install_command = (@LDCONFIG@ $(libdir) || true) >/dev/null 2>&1
+else
+install_command = echo @LDCONFIG@ not run. You may need to execute \"@LDCONFIG@ $(libdir)\" after installation in $(libdir).
+endif
+
+install : $(LIBNAME) installinfo
+	$(INSTALL) -d $(DESTDIR)$(libdir)
+	$(INSTALL) -d $(DESTDIR)$(includedir)
+	$(INSTALL) -d $(DESTDIR)$(priv_includedir)
+	libtool $(INSTALL_PROGRAM) $(LIBNAME) $(DESTDIR)$(libdir)
+	$(INSTALL_DATA) $(XPARAM_PUBLIC_INCLUDE_FILES) $(DESTDIR)$(includedir)
+	$(INSTALL_DATA) $(XPARAM_INCLUDE_FILES) $(DESTDIR)$(priv_includedir)
+	$(install_command)
+
+installinfo :
+	$(INSTALL) -d $(DESTDIR)$(infodir)
+	$(INSTALL_DATA) @XPARAM_INFO_FILES@ $(DESTDIR)$(infodir)
+	-$(INSTALL_INFO) \
+--entry="`cat doc/infodescription`" \
+--section="Programming & development tools." \
+$(DESTDIR)$(infodir)/xparam.info $(DESTDIR)$(infodir)/dir
+
+uninstall : uninstallinfo
+	-rm -f $(patsubst %,$(DESTDIR)%,$(XPARAM_INSTALLED_INCLUDE_FILES))
+	-rmdir $(DESTDIR)$(priv_includedir)
+	-rm -f $(DESTDIR)$(libdir)/libxparam.a
+	-rm -f $(DESTDIR)$(libdir)/libxparam.la
+	-rm -f $(DESTDIR)$(libdir)/libxparam.so
+	-rm -f $(DESTDIR)$(libdir)/libxparam.so.1
+	-rm -f $(DESTDIR)$(libdir)/libxparam.so.1.0.0
+	-rm -f $(patsubst %,$(DESTDIR)%,$(XPARAM_INSTALLED_PUBLIC_INCLUDE_FILES))
+
+uninstallinfo :
+	-rm -f $(patsubst doc/%,$(DESTDIR)$(infodir)/%,@XPARAM_INFO_FILES@)
+	-$(INSTALL_INFO) --remove \
+--entry="`cat doc/infodescription`" \
+--section="Programming & development tools." \
+$(DESTDIR)$(infodir)/xparam.info $(DESTDIR)$(infodir)/dir
+
+clean : $(CLEAN_TARGETS)
+
+$(CLEAN_TARGETS) :
+	-$(MAKE) -C $(patsubst %_CLN,%,$@) clean
+
+ifeq (@CAN_DEPEND@,yes)
+lib/Makefile.depend : $(XPARAM_SOURCES) $(XPARAM_INCLUDE_FILES) $(XPARAM_PUBLIC_INCLUDE_FILES)
+	$(MAKE) -C lib -f Makefile.deprule
+
+tests/Makefile.depend :
+	$(MAKE) -C tests -f Makefile.deprule
+
+depend : dependclean lib/Makefile.depend tests/Makefile.depend
+
+dependclean :
+	-rm -f lib/Makefile.depend tests/Makefile.depend
+
+endif
+
+
+AUTOCONF_CREATED_FILES = Makefile lib/Makefile lib/Makefile.deprule \
+  tests/Makefile tests/Makefile.deprule lib/pub_include/xparam.h \
+  lib/pub_include/xparam_extend.h
+
+configclean :
+	-rm -f config.cache config.log config.status $(AUTOCONF_CREATED_FILES)
+ifeq (@subdirs@,examples)
+	$(MAKE) -C examples configclean
+endif
+
+distclean : clean configclean
+
+ifeq (@CAN_DEPEND@,yes)
+
+realclean : distclean dependclean
+
+.PHONY : all library check examples install uninstall clean $(CLEAN_TARGETS) distclean depend tests/Makefile.depend
+
+else
+
+realclean : distclean
+
+.PHONY : all library check examples install uninstall clean $(CLEAN_TARGETS) distclean installinfo uninstallinfo
+
+endif
+

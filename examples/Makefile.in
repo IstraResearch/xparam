@@ -1,0 +1,25 @@
+@SET_MAKE@
+
+TARGETS = simple involved calculator
+CLEAN_TARGETS = $(patsubst %,%_CLN,$(TARGETS))
+
+all : $(TARGETS)
+
+$(TARGETS) :
+	-$(MAKE) -C $@
+
+clean : $(CLEAN_TARGETS)
+
+$(CLEAN_TARGETS) :
+	-$(MAKE) -C $(patsubst %_CLN,%,$@) clean
+
+AUTOCONF_CREATED_FILES = Makefile simple/Makefile involved/Makefile \
+                         calculator/Makefile
+
+configclean :
+	-rm -f config.cache config.log config.status $(AUTOCONF_CREATED_FILES)
+
+distclean : clean configclean
+
+.PHONY : all clean configclean distclean $(TARGETS) $(CLEAN_TARGETS)
+

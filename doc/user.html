@@ -1,0 +1,769 @@
+<HTML>
+<HEAD>
+<TITLE>
+XParam - General-Purpose Object Serialization Framework for C++
+</TITLE>
+</HEAD>
+<BODY>
+<CENTER>
+<H1>
+XParam - General-Purpose Object Serialization Framework for C++
+</H1>
+<H2>
+The XParam Library User's Guide
+</H2>
+</CENTER>
+<H3>
+The User Interface
+</H3>
+Next: <A HREF="programmer.html">The Programmer Interface</A><BR>
+Previous: <A HREF="introduction.html">Introduction</A><BR>
+Up: <A HREF="index.html">Table of Contents</A><BR>
+<P>
+Contents:
+<OL>
+<LI><A HREF="#general">General</A></LI>
+<LI><A HREF="#parametersets">Parameter Sets</A></LI>
+<LI><A HREF="#gettinghelp">Getting Help</A></LI>
+<LI><A HREF="#modes">Input Modes</A></LI>
+<LI><A HREF="#comments">Comments</A></LI>
+<LI><A HREF="#redirection">Redirection</A></LI>
+<LI><A HREF="#basicparametervalues">Basic Parameter Values</A></LI>
+<LI><A HREF="#complexparametervalues">Complex Parameter Values</A></LI>
+<LI><A HREF="#constants">Constants</A></LI>
+<LI><A HREF="#flags">Flags</A></LI>
+<LI><A HREF="#relaxedtypematching">Relaxed Type Matching</A></LI>
+<LI><A HREF="#lists">Vectors, Lists, Sets and Globs</A></LI>
+<LI><A HREF="#maps">Maps</A></LI>
+<LI><A HREF="#pointersyntax">Pointer Syntax</A></LI>
+<LI><A HREF="#conversions">Conversions</A></LI>
+</OL>
+<A NAME="general"><H4>General</H4></A>
+In general, the user interface provided by XParam tries to look and
+feel as much like object construction inside a C++ program as
+possible. Some features have been added, to make XParam more convenient
+for its particular usage, but as a general guideline it would be
+fair to assume that if something is a legal object construction
+sequence in C++, it would also be recognizeable by XParam.
+<A NAME="parametersets"><H4>Parameter Sets</H4></A>
+The most straight-forward usage of XParam is to read a parameter set
+from the command line. It looks something like this:
+<P>
+<TT>
+~/bin&gt;a.out name=Mary age=17 height=1.6
+</TT>
+<P>
+A parameter set is list of parameters, each of the form
+<TT><I>parameter_name</I> = <I>parameter_value</I></TT>. In this
+example, we assigned a value to three parameters: parameter "name"
+was assigned the value "Mary", parameter "age" was assigned the
+value "17", and parameter "height" was assigned the value "1.6".
+XParam is not sensitive to the order in which the parameters are
+assigned, so it would have been equivalent to write "age=17 name=Mary
+height=1.6".
+<P>
+The parameter set is also insensitive to
+white space, if it is not inside a parameter name or
+a parameter value. So "name=Mary" is equivalent to "name  =  Mary",
+but not to "na me=Mary" or to "name=Ma ry". In the sections dealing
+with parameter values, we will go over special cases in which
+spacing and tabulation are allowed inside a parameter value.
+<P>
+Parameter sets do not have to be read only from the command line.
+A Parameter set may appear in a file, or may originate from any input
+stream. If this is the case, line breaks are also permitted where
+spacing and tabulation are permitted, with the exception noted
+in <A HREF="#complexparametervalues">Complex Parameter Values</A>.
+<P>
+You can add one semicolon to indicate the end of a parameter set, but
+this is not required. It is
+particularly useful if you're reading the parameter set from a stream.
+In this case, the semicolon will terminate the reading of the parameter
+set, even if the end of the stream has not been reached. Use this
+option if you want to read several parameter sets consecutively from
+a stream.
+<P>
+All information in a parameter set is case sensitive.
+<A NAME="gettinghelp"><H4>Getting Help</H4></A>
+Possibly the first thing you'll want to do when encountering a
+program is to find out what input it expects. You can do this, in
+XParam, by executing the program with one of the following as its
+single argument: "!", "/h", "/H", "/?", "/help", "-?" or "--help".
+This will result in a table similar to the following being printed:
+<P>
+<PRE>
+This program determines whether the applicant will get the job.
+
+Usage: progname &lt;param1&gt;=&lt;val1&gt; &lt;param2&gt;=&lt;val2&gt; -&lt;flag1&gt; -no_&lt;flag2&gt;...
+Use any unambiguous prefix of the parameter names
+In case of multiple assignment to the same parameter, the last holds.
+
+Name       Type   I/O Default Value Description
+====       ====   === ============= ===========
+name       string  I  [ required ]  Applicant's name
+age        int     I  [ required ]  Applicant's age
+height     double  I  [ required ]  Applicant's height in meters
+experience int     I  0             Years of experience the applicant has
+result     bool    O                Did the applicant get the job?
+</PRE>
+<P>
+This table indicates that there are five parameters in this set, only
+four of which are input parameters. The program expects you to enter
+a "name" parameter, an "age" parameter and a "height" parameter, for
+these are all required values. If you do not enter these, XParam
+will inform the program that certain parameters are missing, and most
+likely the program will print an error and abort. On the other hand,
+the fourth input parameter, "experience", will default to zero unless
+otherwise stated.
+<P>
+The fifth parameter, "result", is an output parameter. In XParam, one
+can define parameters to be output only, indicated by "O", as is "result",
+or to be used in both input and output, indicated by "I/O". The customary
+way of using XParam will lead all the output and input/output parameters
+to be printed out to the standard output at the end of the program's run
+in the same format as the input, so that programs using
+XParam parameter handling can be piped into each other. The programmer,
+however, may circumvent this at will. A more detailed discussion of this
+appears in the <A HREF="programmer.html#paramset">ParamSet</A> section
+of <A HREF="programmer.html">The Programmer Interface</A>.
+<P>
+As can be seen, the parameters are all strictly typed. Entering "17.5"
+as Mary's age would have resulted in a conversion. Using "medium" as her
+height would have resulted in an error.
+All user-errors detected by XParam are handled by
+throwing the relevant exceptions to the main program. The program
+can then handle the error as the programmer sees fit. For the
+purpose of this document, we will assume that the programmer chose
+to report the error and halt, which is the most simple and common
+thing to do.
+<P>
+In the section <A HREF="#complexparametervalues">Complex Parameter
+Values</A>, a second method for getting help in XParam is discussed.
+<A NAME="modes"><H4>Input Modes</H4></A>
+You may have noted the two lines above the table of parameters:
+<P>
+<PRE>
+Use any unambiguous prefix of the parameter names
+In case of multiple assignment to the same parameter, the last holds.
+</PRE>
+<P>
+These lines inform you of the input mode the programmer has chosen for
+this program. XParam can recognize parameters by any unique prefix of
+their names, or it may require you to enter the full name of the parameter.
+<P>
+XParam can also handle multiple assignments to the same parameter in
+several different ways, which are chosen by the programmer. XParam's
+default mode is that the last assignment holds. However, the programmer
+can change this so that the first assignment will hold, or so that
+multiple assignments to the same parameter are considered an error.
+<P>
+When you execute the program with "--help" or an equivalent option,
+XParam tells you what its current mode of operation is, so that you
+know how to enter your data correctly.
+<P>
+Note: In prefix mode, if two of your parameters have names that are
+prefixes of each other, this does not cause ambiguities. XParam will
+always opt for the shortest match. So, if "munch" and "munchkin" are
+both names of parameters the program, the input "mu" will only match
+"munch", whereas "munchk" will only match "munchkin".
+<P>
+<A NAME="comments"><H4>Comments</H4></A>
+If your parameter set is not on the command line, you can add comments
+to it. The character "#" signifies the start of a comment, whether it appears
+in the middle of a line or in the beginning. The comment continues
+until the end of the line, and stops there.
+So, you can have an input file that looks
+like this:
+<P>
+<TT>
+#File: marydata.txt<BR>
+#This is the applicant that seems most likely to get the job.<BR>
+name=Mary<BR>
+age=17 # Her only problem is that she's a little young for the job.<BR>
+height=1.6<BR>
+</TT>
+<P>
+Comments are allowed in almost any place where spacing and tabulation are
+permitted.
+<A NAME="redirection"><H4>Redirection</H4></A>
+If you want to input many parameters, or if your parameter values are
+very long and complex, you probably don't want to keep them on the
+command-line. It would be more convenient for you to keep them in a
+file, where you can edit them and re-use them at will. To help you,
+XParam provides two different redirection features.
+<P>
+The simpler of the two redirection features is parameter-set redirection.
+Using it, you can read some or all of your parameters from a file.
+For example, if you write, on the command-line
+<P>
+<TT>
+~/bin&gt;a.out @marydata.txt experience=2
+</TT>
+<P>
+XParam will recognize the "@" redirection symbol, and will first read
+the "name", "age" and "height" parameters from the file "marydata.txt",
+before returning to parse the rest of the command-line, and reading
+"experience" from it. You can redirect to as many files as you want
+on a single command-line, and these redirections can appear in any
+order and in any place where a list of parameters is expected.
+<P>
+Nested redirections are also permitted. That is, the file "marydata.txt"
+may also contain a "@" redirection that will direct some or all of the
+parameters to be read from a second file, and so on. XParam does not
+limit the depth of such multiple redirections, but circular redirections
+are not allowed.
+<P>
+The second form of redirection is to redirect a
+single parameter value. This form also uses the "@" redirection symbol,
+and looks like this:
+<P>
+<TT>
+~/bin&gt;a.out name= @namedata.txt age= @agedata.txt height= @heightdata.txt
+</TT>
+</P>
+If you have parameters that have very long and complex values, or if you
+plan on reusing values, you may find this redirection scheme very useful.
+This form of redirection can be used in any context where a value is
+expected.
+<P>
+The file to which you are redirecting, in this case, can include comments,
+but beside the comments only the value should appear. For example:
+<P>
+<TT>
+#File: agedata.txt<BR>
+#Mary may be a little too young for this job.<BR>
+17<BR>
+</TT>
+<P>
+Though XParam is mostly used to read parameter sets, it also allows the
+programmer to read and write single values. Using this feature, a
+program can read "agedata.txt" directly. In any case, nested redirections
+are allowed here, too.
+<P>
+If you want to redirect part of your input to be read from the standard
+input (for example, if you want to pipe an entire parameter set from
+one program to another), use "@stdin".
+<A NAME="basicparametervalues"><H4>Basic Parameter Values</H4></A>
+In general, XParam recognizes the built-in C++ types, as they are recognized
+inside a C++ program: 7 denotes an integer, '7' - a character, "7" -
+a string, 7U - an unsigned int, 7L - a long int and 7UL - an unsigned long
+int, 7.0 - a double, 7.0f - a float. On systems where long double is
+supported, 7.0L will be considered a long double. If long long is supported,
+XParam will recognize integer values larger than the capacity of a "long"
+variable as long long, or as unsigned long long, if they are followed by
+the letter 'U'. An 'L' following long long and unsigned long long is also
+allowed. Note that XParam distinguishes
+between a string and a pointer to a char, and that, unlike in C++, the string
+"7" will be recognized as an std::string in XParam, and not as a pointer
+to a char.
+A more in-depth discussion of this can be found in the
+<A HREF="registration.html#argumentpassers">Argument Passers</A> section
+of the <A HREF="registration.html">Registration Interface</A>.
+<P>
+In strings and in characters, XParam also recognizes the '\n' format for
+special characters, as well as hexadecimal notation: '\x0D'. Note that
+if you're using hexadecimal character notation, you must enter exactly
+two hexadecimal digits: both '\xD' and '\x00D' are mistakes. Integers
+can be input in decimal (<TT>17</TT>), hexadecimal (<TT>0x11</TT>),
+octal (<TT>021</TT>) or binary (<TT>0b1001</TT>).
+Floating point numbers observe the standard C++ notation, so all
+the following examples are correct forms of doubles: <TT>17.6</TT>,
+<TT>1.76E1</TT>, <TT>+01.7600e+01</TT>, etc.
+Using the '\c' notation in conjunction with characters that have no
+special meaning ('\c', '\d', '\0', etc.) will be interpreted as using
+the character itself (so this is equivalent to 'c', 'd' and '0',
+respectively). Naturally '\\' is used to denote a backslash, '\"',
+when in a string literal, denotes quotation marks and '\'', when in
+a character literal, denotes an apostrophe.
+<P>
+As in C++, comments, spacing and tabulation are not allowed within any
+of these literal constants. However, outside literal constants, comments
+spacing, line breaking and tabulation are allowed in any place within
+the definition of a parameter value.
+<A NAME="complexparametervalues"><H4>Complex Parameter Values</H4></A>
+XParam's main strength is in its extendability. You do not have to limit
+yourself to the built-in C++ types, but can use any class you wish.
+The way this is done is as follows: every class in C++ can be constructed
+from simpler classes. The way to do so is described in the classes'
+constructors. For example, if I have a class "Triangle" which has a
+constructor accepting three "Point" instances, and class "Point" has
+a constructor accepting two integer objects, then these describe how
+a Point can be constructed from two integers, and a Triangle from
+three Point objects.
+<P>
+XParam takes advantage of this by allowing you to define the value of
+a parameter of type Triangle in this way: "Triangle(Point(5,7),
+Point(1,10), Point(3,6) )". This line is handled in much the same way
+as it would have been handled inside a C++ program. First, all the
+integer literals are recognized. Second, three Point objects are
+constructed using the Point-from-two-integers constructor. Last, the
+desired Triangle is constructed using the Triangle-from-three-Points
+constructor.
+<P>
+In addition to simple class names, XParam can also recognize class names
+that are template specializations. For example: "Matrix&lt;const int*&gt;"
+is a legal class names in XParam. The words "Matrix", "const" and "int",
+int this example, are considered literals, in the sense that no white
+space can appear in the middle of them. XParam also disallows the use of
+white space between the first literal in a class name and the symbol
+immediately following it (which will be '(' if the literal is the entire
+name of the class, '&lt;' if it is a template name, and '::' if it is a
+scope qualifier). This is meant to enable XParam's parser to efficiently
+distinguish between class names and relaxed string literals. (see the
+section regarding <A HREF="#relaxedtypematching">Relaxed Type Matching</A>
+for an explanation of relaxed string literals.)
+<P>
+With these exceptions, white space is allowed anywhere inside a
+parameter value.
+<P>
+Note that this line "Triangle(Point(5,7), Point(1,10), @thirdpoint.txt)"
+is also allowed. The third point of the triangle is read from the file
+"thirdpoint.txt". This is simply a parameter value redirection, where
+the read value is used as part of a more complex value.
+<P>
+In general, XParam only uses object constructors and conversion operators
+in order to construct objects. However, in a few cases, the programmer
+of the classes may have neglected to provide suitable or
+convenient constructors for his classes, for a number of reasons.
+To circumvent this problem, XParam allows the class registrator
+to provide other functions, beside class constructors,
+that create instances of the required type. From a user's point-of-view,
+these creators are indistinguishable from regular constructors. For
+this reason, you may find that some "constructors" you use in XParam
+are not available to you inside C++ programs.
+<P>
+XParam class names, such as <TT>Triangle</TT>, are usually the same as
+the names of the C++ classes they represent. However, in some cases,
+we have opted for abbreviations. The <TT>std::vector&lt;T&gt;</TT> and
+the <TT>std::string</TT> classes, for example, are called
+<TT>vector&lt;T&gt;</TT> and <TT>string</TT> respectively in XParam.
+This is merely an abbreviation. XParam can handle fully qualified names
+such as <TT>std::basic_string&lt;char, std::char_traits&lt;char&gt;,
+std::allocator&lt;char&gt; &gt;</TT>, but these are much more
+cumbersome to use. On the other hand, no XParam class name can include
+a modifier. Therefore <TT>long int</TT>, <TT>const double</TT>,
+<TT>unsigned char</TT>, <TT>static float</TT> and <TT>volatile string</TT>
+are all unallowed as XParam class names. In general, <TT>volatile</TT>
+and <TT>static</TT> are considered to be unuseful modifiers in the
+XParam context, <TT>const</TT>, which is generally meaningful only
+in the context of argument passing mode, is handled transparently by
+XParam, as is discussed in the <A HREF="#pointersyntax">Pointer Syntax</A>
+section, and <TT>long</TT> and <TT>unsigned</TT>, which are allowed
+only for the basic types, have been integrated as part of the
+registered class name: XParam uses <TT>long</TT>, <TT>uchar</TT>,
+<TT>ushort</TT>, <TT>uint</TT> and <TT>ulong</TT> instead of <TT>long int</TT>,
+<TT>unsigned char</TT>, <TT>unsigned short</TT>, <TT>unsigned int</TT>
+and <TT>unsigned long int</TT>,
+respectively. As these types are hardly ever explicitly converted to,
+one rarely needs to use these names in actual invocations.
+On systems that support these types, XParam also defines
+<TT>longlong</TT>, <TT>ulonglong</TT> and <TT>long_double</TT>, which
+are the C++ types <TT>long long</TT>, <TT>unsigned long long</TT> and
+<TT>long double</TT> respectively.
+<P>
+If you want to use a certain class, but are not sure what
+constructors are available for it, use the format
+<P>
+<TT>
+~/bin&gt; a.out ! <I>classname</I>
+</TT>
+<P>
+This will give you full information about the class, in a user-friendly
+format. Instead of the classname, you can also enter the name of a
+constant of the class type, with the same effect. Constants are explained
+in detail in the next section.
+<A NAME="constants"><H4>Constants</H4></A>
+In addition to explicitly built parameters, XParam also allows you to use
+constants in your variable initializations. The registrator can define
+constants of any XParam-recognized class, as well as any enums.
+In addition to this, there are
+several constants which have been pre-defined: "true" and "false" are
+booleans, "NaN" is that ISO not-a-number of type double (also functioning
+as a positive and negative infinity), "NaNF" is its
+equivalent float and "NaNL" is the long double version, if your compiler
+supports long doubles. Last but not least, "NULL" can match any pointer type.
+<P>
+The syntax for constants is very simple: simply use their name in your
+definition. For example:
+<P>
+<TT>
+~/bin&gt; my_prog b = false
+</TT>
+<P>
+will assign the value 'false' to 'b', if 'b' is a variable of type boolean.
+<P>
+As all parameter values, constants can be used as constructor parameters
+to build other classes, and can undergo conversions.
+<A NAME="flags"><H4>Flags</H4></A>
+One exception to the <TT><I>parameter_name</I> = <I>parameter_value</I></TT>
+sequence is the use of flags. XParam allows the syntax
+<P>
+<PRE>
+-<I>parameter_name</I>
+</PRE>
+<P>
+to be used instead of
+<TT><I>parameter_name</I>=true</TT> and
+<P>
+<PRE>
+-no_<I>parameter_name</I>
+</PRE>
+<P>
+to be used instead of <TT><I>parameter_name</I>=false</TT>, if
+<TT><I>parameter_name</I></TT> is a parameter of type bool. The two
+notations are completely interchangeable. XParam does not support
+flags that have names starting with <TT>no_</TT>. Behavior of
+XParam if such a flag is used is undefined.
+<A NAME="relaxedtypematching"><H4>Relaxed Type Matching</H4></A>
+Often, it is cumbersome to write <TT>name="Mary"</TT> instead of
+<TT>name=Mary</TT>. This is especially true on the command-line in a
+Unix environment, because shell parsing would require you to write
+<TT>'name="Mary"'</TT> for the quotation marks not to disappear in
+the parsing. To alleviate this problem, XParam provides a more
+relaxed user interface, in which tentative
+type matching is allowed in the stage of explicit literals.
+<P>
+If we look at the example <TT>name=Mary</TT> more closely, we can see
+that <TT>Mary</TT> can not be parsed as anything other than a string.
+It's too long to be a character, isn't entirely composed of digits,
+and doesn't have parentheses which may indicate that this is a complex
+parameter value. The only remaining option is a string literal constant.
+<P>
+Here's another example: <TT>num=7</TT>. If <TT>num</TT> is defined as
+an integer, then the <TT>7</TT> will also have to be an integer, for if
+it is treated as a string, instead, there will be no way to convert it to an
+integer, for it to be assigned into <TT>num</TT>. This is known as
+destination driven type matching. Though C++ doesn't support this form of
+type matching, it is nevertheless an accepted form of strict-typed syntax,
+and XParam makes full use of it.
+<P>
+It is therefore often possible, only by looking at the context in which
+literal constants are used, to deduce their type. When this is the case,
+XParam does not require you to use quotation marks or apostrophes around
+your string and character literals. XParam considers the literal to be
+of a "tentative" type until the exact type can be deduced, or, in cases
+of ambiguity, notifies the program that the type can not be deduced.
+The program will then most likely choose to report this and halt.
+<P>
+If you wish to explicitly state the type of your literal, you can always
+do so, by using the full syntax detailed in the
+<A HREF="#basicparametervalues">Basic Parameter Values</A> section. The
+relaxed syntax is meant for your convenience, and in no way compromises
+XParam's type strictness.
+<P>
+Specifically in the case of tentative types that can only be resolved as
+strings, we have imposed several restrictions on XParam, so that not
+any arbitrary string of characters will be recognizeable as a string.
+There are two reasons for these restrictions:
+<OL>
+<LI>So that strings will not be confusable with the rest of the XParam
+syntax. For example: "int(7)", if not quoted, can be parsed as a legal
+integer initialization. We have also added restrictions meant for
+syntax extensions we mean to add in the future.</LI>
+<LI>So that strings will not be confusable with typing errors. For
+example, "int(7", if not quoted, is not a legal integer initialization,
+but is nevertheless more likely to be a typing error than an
+intentionally typed string.</LI>
+</OL>
+Generally, the guidelines we used to define what a tentative string
+can match were designed so that any ordinary file name will be
+accepted.
+<P>
+However, you should be aware that XParam makes its best efforts to
+make any input you give it into a legal initialization, and in doing
+so can actually misinterpret user errors into legal initializations
+that the user didn't mean. Here's one example: suppose that "duck"
+has a normal construction from a string and an explicit construction
+from an integer. This would mean that both "d=some_string" and
+"d=duck(7)" are legitimate initializations. However, if you, by
+accident, typed in "d=7", you would probably expect XParam to tell
+you that this is not a valid initialization. Well, it is and it
+won't: the "7" can be interpreted as a string, in which case the
+initialization can be completed as read, and that's exactly what
+XParam will do.
+
+<A NAME="lists"><H4>Vectors, Lists, Sets and Globs</H4></A>
+
+Another tentative type recognized by XParam is the heterogenous value list.
+This is denoted by a sequence of values separated by commas that is placed
+within brackets. For example:
+<P>
+<TT>
+[ Point(1,1), Point (1,10), Point(10,10), Point(8,2) ]
+</TT>
+<P>
+A heterogenous value list, or HVL for short, can be the converted into
+other, more directly accessible types.
+Out-of-the-box, XParam comes with
+the ability to convert HVLs to the following class types:
+<UL>
+<LI><TT>st::vector&lt;<I>T</I>&gt;</TT></LI>
+<LI><TT>st::list&lt;<I>T</I>&gt;</TT></LI>
+<LI><TT>st::set&lt;<I>T</I>&gt;</TT></LI>
+</UL>
+The XParam registrator can
+add more types which can be constructed from value lists.
+<P>
+The conversion from an HVL to a different type is done
+by converting all the elements in the list to type <TT><I>T</I></TT>,
+and using them as the elements of the constructed object.
+XParam tries to deduce the relevant type
+<TT><I>T</I></TT>
+according to the types of the elements in the value-list and by the context
+in which it is used. If no relevant type is found, or if an
+ambiguity occurs, an XParam user-error will be thrown.
+Here's an example of assigning to an <TT>std::list</TT>.
+<P>
+<TT>
+my_list = [1, 2.3, -4]
+</TT>
+<P>
+If the parameter <TT><I>my_list</I></TT> is an <TT>std::list&lt;int&gt;</TT>
+then all the elements will
+be converted to <TT>int</TT>s. If it's a
+<TT>std::list&lt;double&gt;</TT> then the
+elements will
+be converted to <TT>double</TT>s. It is also possible to specify the type
+explicitly:
+<P>
+<TT>
+my_list = list&lt;int&gt;([1, 2.3, -4])
+</TT>
+<P>
+In addition to constructing a <TT>vector</TT> or <TT>list</TT> by
+providing all the elements
+explicitly, in XParam a <TT>vector</TT> or <TT>list</TT> can also be
+initialized in the usual C++ way, using
+either default constructor
+<P>
+<TT>
+vector&lt;int&gt;() # an empty vector
+</TT>
+<P>
+or using a constructor with two arguments - the number of elements, and a value
+which will be used for all the elements:
+<P>
+<TT>
+vector&lt;int&gt;(3,7) # same as [7,7,7]
+</TT>
+<P>
+The <TT>std::list</TT> can be constructed using its default constructor.
+<P>
+Because brackets are also characters that are used by the shell,
+XParam provides a relaxed syntax here, too. If your value-list is two
+or more elements long, the brackets can be omitted, and XParam
+will be able to tell that this is a value-list by looking at the
+commas separating the elements. This relaxed syntax is only
+available on the top-level of an assignment, not in any other
+context. So, this:
+<P>
+<TT>
+a = [ 1, 2, 3 ]
+</TT>
+<P>
+is equivalent to this:
+<P>
+<TT>
+a = 1, 2, 3
+</TT>
+<P>
+but in the following two examples, no relaxed syntax is allowed:
+<P>
+<TT>
+a=duck([ 1, 2, 3 ]) # value as a constructor argument<br>
+[1, 2, 3] # just a value - no assignment
+</TT>
+<P>
+One more syntax for inputting vectors is available in XParam. It is the glob.
+A glob is an assignment that looks like this:
+<P>
+<TT>
+~/&gt; my_program a = : one two three :
+</TT>
+<P>
+The syntax is composed of an openning colon followed by the items in the
+vector, with a closing colon at the end. This syntax is only available in
+the shell, because the separation of the list into objects is not done,
+as in all other lists, by commas. Instead, items are separated using
+shell separators. A shell separator is expected after the initial colon,
+before the closing colon, and between each pair of items in the list.
+<P>
+This syntax is useful, as its name suggests, in globbing scenarios.
+Consider, for example, the following initialization line:
+<P>
+<TT>
+~/&gt; my_program my_files = : *.c *.o :
+</TT>
+<P>
+If you're in a Unix shell, that parses the wildcards for you, before they
+are input into the program, then this command-line would initialize the
+parameter <TT>my_files</TT> as a vector of all filenames in the current
+directory ending in either "<TT>.c</TT>" or "<TT>.o</TT>".
+<P>
+For convenience, if the closing colon is the last character on the input
+line, it may be omitted.
+<P>
+Things to note about the globbing syntax:
+<OL>
+<LI>This syntax only allows the initialization of values whose type is
+<TT>vector&lt;string&gt;</TT>, and no other type.</LI>
+<LI>The names in the globbed list are not "tentative literals", as may
+be expected. Within a glob, XParam is very liberal regarding what it
+may take for a string. This includes, for example, items containing
+white-space characters. XParam only uses shell separators, within globs,
+in order to separate or truncate names. The only restriction this
+imposes is that no string in the list may start with a colon, or else
+XParam will confuse it with the colon signifying the end of the glob.</LI>
+</OL>
+<A NAME="maps"><H4>Maps</H4></A>
+XParam provides the following syntax for conveniently initialzing 
+the C++ types <TT>std::map&lt;<I>KEY</I>,<I>VALUE</I>&gt;</TT>:
+<P>
+<TT>
+{ <I>key1</I> => <I>value1</I>, <I>key2</I> => <I>value2</I>, <I>...</I> }
+</TT>
+<P>
+Finding the correct types <TT><I>KEY</I></TT> and <TT><I>VALUE</I></TT>
+is done by methods similar to
+those used for <TT>vector</TT>s and <TT>list</TT>s,
+and depends on the actual values used
+in the <TT>map</TT>, as well as on the context in which the
+<TT>map</TT> is used. 
+For example, the following assignment:
+<P>
+<TT>
+my_map = { 3 => 9, 4 => 16, 5 => 25 }
+</TT>
+<P>
+will work if <TT><I>my_map</I></TT> is of type <TT>map&lt;int,int&gt;</TT>
+or <TT>map&lt;int,double&gt;</TT>, 
+or even <TT>map&lt;double,string&gt;</TT>.
+<P>
+The following assignment will work for
+<TT>map&lt;double,string&gt;</TT>,
+but will produce an XParam error in the case of 
+<TT>map&lt;int,int&gt;</TT> or <TT>map&lt;int,double&gt;</TT>:
+<P>
+<TT>
+my_map = { 3 => "9", 4 => abc, 5 => 25 }
+</TT>
+<A NAME="pointersyntax"><H4>Pointer Syntax</H4></A>
+Some classes expect pointers to be passed on to them in constructors.
+In XParam, unlike in C++, you do not need to use special syntax in
+order to signify the fact that you are passing an object by pointer.
+Consider the following example:
+<P>
+<TT>
+my_variable = ClassA( ClassB() )
+</TT>
+<P>
+Looking at this syntax, it is impossible to tell, in XParam, whether
+ClassA's constructor expects a ClassB instance to be passed on to it
+by value, by constant reference or by pointer. Furthermore, it is
+impossible to tell whether my_variable, inside the C++ program, is
+a class instance or a class pointer. This leads to a very simple
+and straight-forward syntax for the XParam user. The drawback is
+that if a class has two constructors, one from a ClassB constant
+reference and the other from a pointer to ClassB, they can not both
+be registered as is. In the section dealing with registration
+interface we will return to this problem and show workarounds, but
+this problem is highly esoteric and hardly ever encountered.
+<P>
+Note that because <TT><I>my_variable</I></TT> in the example can be
+of type <TT>ClassA*</TT> just as well as it can be a <TT>ClassA</TT>
+instance, XParam allows the same syntax to be used to enable
+polymorphism. Consider the fact that <TT><I>my_variable</I></TT>
+can just as well be a pointer to a base class, from which ClassA
+is derived. XParam allows this use, and even enables
+<TT><I>my_variable</I></TT> to be a pointer to an abstract class.
+Consider this example:
+<P>
+<TT>
+my_window=Window(Point(0,0),Point(100,100),Circle(Point(10,10),5))
+</TT>
+<P>
+In this example, the user initializes a variable of type "Window",
+which will be in charge of a window on the graphic screen. The
+first two parameters indicate two corners of this window,
+establishing its position. The last, optional, parameter indicates
+which shape will be drawn inside this window initially. This
+parameter is of type <TT>Shape*</TT>, which is a pointer to
+an abstract class. The user, however, wrote <TT>Circle(...)</TT>,
+which XParam takes to be a pointer to a Circle, which will
+be used polymorphically as a <TT>Shape*</TT> object.
+<P>
+One particularly interesting use for this polymorphism is strategy
+management. For example, supposing my program displays URLs. It
+receives parameter "url" which will denote which URL to display.
+Variable "url" will be of type "URL*", where "URL" is an abstract
+class. The information of which protocol to use becomes part of the
+class information: <TT>url=HTTP("sourceforge.net")</TT> may be
+very different than <TT>url=FTP("sourceforge.net")</TT>.
+<P>
+In the registration section, we will go over how to dynamically link
+classes HTTP and FTP on the fly, when necessary, but for the user
+of XParam, when dynamically loading class libraries becomes necessary,
+it is performed automatically and unobtrusively. The user need not
+even know which of the classes she uses is statically linked and
+which dynamically.
+<A NAME="conversions"><H4>Conversions</H4></A>
+Throughout the discussion, we have often mentioned conversions.
+XParam allows conversions, both implicit and explicit, adhering to
+rules similar to those used by C++. XParam will always try to find
+the best possible conversion path, but can encounter situations in
+which no possible conversion path is found or more than one equally
+good conversion path can be considered the best. If such a case is
+encountered, an XParam user-error will be thrown.
+<P>
+For example: <TT>my_double=7</TT> will cause the <TT>7</TT>, an integer,
+to be cast into a double, with the value 7.0, which will then be assigned
+to the variable <TT>my_double</TT> of type double. This calls for a
+conversion between two built-in C++ types.
+<P>
+Another example would be <TT>my_swan=ugly_duckling()</TT>. Here, a
+value of type <TT>ugly_duckling</TT> is assigned into a variable of type
+<TT>swan</TT>. For this to succeed, XParam must find a way to convert
+an <TT>ugly_duckling</TT> into a <TT>swan</TT>. This is a user-defined
+conversion. As in C++, user-defined conversions receive a lower priority
+than conversions between built-in types.
+<P>
+The previous two examples were rather straight-forward. However, conversion
+sequences can be arbitrarily complex.
+Consider, for example, the execution line mentioned in the introduction:
+<P>
+<TT>
+~/bin&gt;a.out 'my_shape=[ Circle(Point(50,50),50), Circle(Point(25,75),10),
+Circle(Point(75,75),10), Arc(Point(25,50), Point(50,25), Point(75,50)) ]'
+</TT>
+<P>
+In the introduction, "my_shape" was considered to be a "Composite" object,
+but it can just as well be a pointer to a "Shape" object. Here's how this
+works:
+<P>
+First, a list containing three circles and one arc is created.
+The construction
+of these involves no casting whatsoever, implicit or explicit, but,
+conceivably, "Point"'s constructor could have expected two doubles, instead
+of two integers, in which case XParam would have silently and implicitly
+converted the integers to doubles. Next, the list of two circles and one
+arc is converted to an <TT>std::vector&lt;Shape*&gt;</TT> type.
+Note that for this to
+happen, the circles and the arc had to be implicitly considered to be
+pointers, instead of class instances, and had to then be upcast to their
+abstract base class Shape, so as to become "Shape*" objects. Once this
+is done, the std::vector&lt;Shape*&gt; is taken to be the single argument in
+the constructor of a "Composite" object - this is a user-defined conversion
+constructor. And finally, the "Composite" object is considered to be a
+pointer object, too, and upcast to its abstract base class, "Shape",
+becoming a polymorphic "Shape*" object, which can now be assigned to the
+relevant C++ variable.
+<P>
+All the necessary conversions along the path are silently and implicitly
+handled by XParam, with no manual involvement necessary.
+<P>
+Next: <A HREF="programmer.html">The Programmer Interface</A><BR>
+Previous: <A HREF="introduction.html">Introduction</A><BR>
+Up: <A HREF="index.html">Table of Contents</A><BR>
+</BODY>
+</HTML>
+

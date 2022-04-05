@@ -1,0 +1,1146 @@
+This is xparam.info, produced by makeinfo version 4.1 from
+/tmp/linuxdoc-dir-24148/sgmltmp.xparam.info.2.
+
+   \input texinfo
+
+
+File: xparam.info,  Node: Class Declarations,  Next: Inheritance,  Prev: The Basic Structure,  Up: The Registration Interface
+
+Class Declarations
+==================
+
+   The usual way to declare a class for XParam's use is
+
+          PARAM_CLASS(my_class);
+
+   `PARAM_CLASS' is a macro. If you rather not use this macro, you can
+always opt for the longer form:
+
+          param_class<my_class>("my_class");
+
+   which is what the previous line expands to. This format is usually
+not used, unless you want your class to be given a different name in
+its XParam user interface than it does in C++. Though this may seem
+like a strange idea at first, take into account that fully qualified
+class names are used much more frequently in XParam than they are in
+C++ code, so it is convenient to use a shorter form here. Here is one
+example of such a usage, in XParam's own `cpp' files:
+
+          param_class<std::string>("string");
+
+   The STL string, known inside C++ programs as `std::string', and
+sometimes even as `std::basic_string<char, std::char_traits<char>,
+std::allocator<char> >' would have been cumbersome to use under that
+name. Therefore, the XParam name it has been given is simply `string'.
+XParam would have been able to handle this fully qualified name.
+However, no XParam class name can include a modifier, such as
+"unsigned", "long", "const", "static" or "volatile". (See the exception
+to this rule, later on in this section.)
+
+   One other reason not to use the macro is when your class-name has a
+comma in it, such as "Position<int,int>". If you try to use the
+PARAM_CLASS macro with this name, it will complain that the macro was
+invoked with too many parameters, because the macro can not correctly
+parse this expression. In such a case, use non-macro registration.
+
+   Because XParam tries to instantiate its classes, abstract classes can
+not be registered in this way. They use
+
+          PARAM_ABSTRACT_CLASS(my_abstract_class);
+
+   which is a macro that expands to
+
+          param_abstract_class<my_abstract_class>("my_abstract_class");
+
+   Registering abstract classes is useful for using polymorphism, where
+inheritance relationships are necessary.
+
+   The following types have been pre-registered by XParam. The name in
+parentheses indicates the XParam-name of the class, if it differs from
+the C++ name.
+   * bool
+
+   * char
+
+   * double
+
+   * float
+
+   * int
+
+   * long
+
+   * short
+
+   * std::string (string)
+
+   * unsigned char (uchar)
+
+   * unsigned int (uint)
+
+   * unsigned long (ulong)
+
+   * unsigned short (ushort)
+
+   In addition, for platforms which support these, XParam also provides
+   * long long (longlong)
+
+   * unsigned long long (ulonglong)
+
+   * long double (long_double)
+
+   Though you can register any template specialization you want, not
+every template specialization is a legal XParam name. Currently, XParam
+can only handle template specializations which expect class names as
+their specialization parameters. That is: `Matrix<int>' is allowed, but
+`Matrix<3,4>' isn't. If you want to use class `Matrix<3,4>', you can,
+but not under that name. Here is one possible workaround:
+
+          param_class<Matrix<3,4> >("Matrix<THREE,FOUR>");
+
+   There are two exceptions to the "no modifiers are allowed in class
+names" rule: when registering a template specialization, classes that
+are part of the specialization description can include the modifier
+"const" and a "*" if they are pointer types, but no other modifier. For
+example: `vector<const string*>' is a legal XParam class name, and one
+can therefore register it directly using the registration macro:
+
+          PARAM_CLASS(vector<const string*>);
+
+
+File: xparam.info,  Node: Inheritance,  Next: Constant Variables,  Prev: Class Declarations,  Up: The Registration Interface
+
+Inheritance
+===========
+
+   In addition to the registration of the existance of your classes,
+XParam allows you to register other properties. Here is the syntax to
+register an inheritance relationship between two classes:
+
+          param_inheritance(DerivedTag<my_derived_class>(), BaseTag<my_base_class>());
+
+   The syntax includes `DerivedTag' and `BaseTag' so as to minimize the
+possibility of confusion in the registration order.
+
+   Just as in C++, if A derives from B and B derives from C, then A
+derives from C. You do not need to register the A-from-C relationship
+explicitly.
+
+   Note: The entire registration process is meant to register class
+interfaces. If your class has private or protected inheritance from a
+base class, this is naturally not a part of the class interface, and
+you should therefore not register it. Another very important detail to
+note about registering inheritances is that all classes involved in an
+XParam inheritance relationship must have at least one virtual method
+(even if it is the destructor). This makes C++ create a virtual method
+pointer table for the class, enables real-time type information for the
+class, allows use of `dynamic_cast's, and, in general, allows XParam to
+make proper use of the inheritance information.
+
+
+File: xparam.info,  Node: Constant Variables,  Next: Enumerators,  Prev: Inheritance,  Up: The Registration Interface
+
+Constant Variables
+==================
+
+   Defining a constant, so that it will be recognized in XParam
+initializations, is very simple. The registration command is:
+
+          param_const(name,value);
+
+   where `name' is a string, and `value' can be a C++ variable of any
+type which has been registered into XParam.  XParam does not insist
+that your variable will be defined as 'const'. However, the value that
+this variable had at registration time is the value that XParam will
+use.
+
+   The constant will be of the same type as that of the C++ variable.
+In XParam initializations, the constant will be recognized by the name
+given in `name'.
+
+   Usually, the name you will want to give your constant is the same as
+the name you reference it in your C++ programs. To accomplish this,
+XParam defines an easy interface using the PARAM_CONST macro.
+
+          PARAM_CONST(variable);
+
+   expands to
+
+          param_const("variable",variable);
+
+   Note: It is not recommended to use dynamically loaded constants.
+Though XParam does support loading constants dynamically, using a
+constant in a parameter initialization will not trigger dynamic
+loading. XParam will only recognize the constant if it had already been
+loaded due to a missing class that had to be dynamically loaded. For
+this reason, it is safest to have all your constants statically linked
+to your program.
+
+
+File: xparam.info,  Node: Enumerators,  Next: Argument Passers,  Prev: Constant Variables,  Up: The Registration Interface
+
+Enumerators
+===========
+
+   Enumerators are handled in a very similar way to constants.  First,
+you need to register your enum type. This is done by the macro
+
+          PARAM_ENUM(enum_type);
+
+   or, alternatively, by an explicit call to the registration function
+it expands to:
+
+          param_enum<enum_type>("enum_type_name_in_XParam");
+
+   or, for an ISO-challanged compiler:
+
+          param_enum(TypeTag<enum_type>(),"enum_type_name_in_XParam");
+
+   The macro naturally assumes that you want to set the name of the
+enum_type in XParam to be exactly what it is in C++.
+
+   To define a certain instance of your enum, all you have to do is use
+the macro
+
+          PARAM_ENUM_VAL(value);
+
+   or the function it expands to:
+
+          param_enum_val("value_name_in_XParam", value);
+
+   where the value's name in C++ and the value's name in XParam are
+assumed to be the same.
+
+   If this sounds complex, here is an example that will make it clearer:
+
+          enum DOW { Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday };
+          
+          PARAM_BEGIN_REG
+            PARAM_ENUM(DOW);
+            PARAM_ENUM_VAL(Monday);
+            PARAM_ENUM_VAL(Tuesday);
+            PARAM_ENUM_VAL(Wednesday);
+            PARAM_ENUM_VAL(Thursday);
+            PARAM_ENUM_VAL(Friday);
+            PARAM_ENUM_VAL(Saturday);
+            PARAM_ENUM_VAL(Sunday);
+          PARAM_END_REG
+
+   That's all there is to it! The enumerator is now ready to be read
+from the input as if it were a regular constant. Note, however, that
+there is a difference between constants and enums in the way they are
+output: constants are output by their values, so if the programmer was
+to write "cout << Val(M_PI)", she can expect to get "3.1415" on the
+output line.  Enums, on the other hand, are output by name. Writing
+"cout << Wednesday", will result in "Wednesday" being output, so that
+re-reading the enum elsewhere will still give the value of Wednesday,
+even if the enum is defined by a different integer there.
+
+   An exception to this rule are enums that were not declared by the
+registrator.  If, in the registration process, you registered
+"PARAM_ENUM(DOW);", but did not continue to register its instances -
+something we wholeheartedly discourage - then anyone who tries writing
+"cout << Wednesday" will get "DOW(2)" in the output. Though this still
+works, and can even be read back using XParam (assuming Wednesday is
+still represented by the number 2 in the DOW list of the reading
+program) it is much less clear to a human reader, and may be less
+portable. For this reason, it is always advisable to register all your
+enum values.
+
+
+File: xparam.info,  Node: Argument Passers,  Next: Constructors,  Prev: Enumerators,  Up: The Registration Interface
+
+Argument Passers
+================
+
+   Most of the registration code is composed of registration of
+constructors. This, in general, looks something like this:
+
+          param_ctor<Point>(ByVal<int>("x"),ByVal<int>("y"));
+
+   This particular line means: class `Point' has a constructor from two
+integers, x and y, both passed by value.  As you can see, a major part
+of the description is composed of argument passers: `ByVal<int>("x")'
+is the XParam way of saying "an argument called `x', of type `int',
+which is passed by value". In this section we will go over the various
+argument passers supplied by XParam and how to use them.
+
+   In XParam, arguments can be passed by value, by constant reference
+or by pointer. If it is passed by pointer, an argument can be constant
+or non-constant, and the responsibility to delete it after the end of
+the construction call can lie either with the caller, or with the
+called constructor. This gives four different types of pointers. In
+addition to this, there are two more argument passers: AsConvertedVal
+and AsCString. These will be explained later on.
+
+   An XParam argument, with the exception of AsConvertedVal and
+AsCString, takes the following form:
+
+          passmode<type>("argname")
+
+   for example:
+
+          ByVal<int>("width")
+
+   This means: the argument's name is `width', its type is `int' and it
+should be passed by value. The argument's name is currently only used
+for error reporting and getting help, but may become more functional in
+future XParam versions.
+
+   Instead of `ByVal', you can put `ConstRef' to indicate an argument
+passed by constant reference, `ClassPtr' and `CallerPtr' to indicate a
+pointer that is owned by the method it was passed to or one that is
+owned by the caller and should be deleted by XParam, respectively, and
+`ClassConstPtr' and `CallerConstPtr', which are the constant pointer
+equivalents of `ClassPtr' and `CallerPtr'.
+
+   XParam pointers are all allocated by `new', so `ClassPtr' and
+`ClassConstPtr' should be deallocated by using `delete' in the called
+method.
+
+   One special case is a constructor expecting a C-string (i.e. a
+null-terminated array of `char's). XParam handles strings in a very
+different way than C++ does. C++ considers an explicit string literal
+to be of type C-string. Type C-string is equivalent to an array of
+`char's, and different than an `std::string'. In XParam, an explicit
+string literal is considered to be of type `std::string'. For this
+reason, if class `Duck' has a constructor from an `std::string', and
+`my_duck' is an instance of `Duck', then
+
+          my_duck="abc"
+
+   is a legal XParam initialization. In C++, this would have required
+two implicit user-defined casts: one from C-string to `std::string',
+the other from `std::string' to `Duck'.
+
+   On the other hand, unlike C++, XParam considers the types
+`std::string', C-string and [`const'] `char*' to be completely unrelated
+types. In previous examples, we have shown how to pass, in XParam,
+arguments of any class type (using `ByVal' and `ConstRef') as well as
+any pointer type. In this way, it is possible to pass either an
+`std::string' or a [`const'] pointer to a `char'.  However, these will
+not do if you want your constructor to accept a C-string parameter. To
+do this, write
+
+          AsCString("argname")
+
+   Finally, if you need, for some reason, to allow an implicit
+conversion at pass-time, and your compiler warns you about this, you
+can use
+
+          AsConvertedVal<sourcetype,destinationtype>("argname");
+
+   This should hardly ever be needed. However, XParam's pre-registered
+types use this, because implicit conversions between almost all
+built-in C types are allowed by the language.
+
+
+File: xparam.info,  Node: Constructors,  Next: Creators,  Prev: Argument Passers,  Up: The Registration Interface
+
+Constructors
+============
+
+   Now that we've gone over argument passing, here's the syntax to
+register constructors:
+
+          param_ctor<registered_type>( .. list of argument passers ... );
+
+   The list of argument passers can contain between zero and thirteen
+arguments (XParam does not support methods with more than thirteen
+arguments, by default.  This can be changed. See the *Note Installing
+XParam::  section for details).  The arguments should have the format
+described in the previous section. Arguments in the list should be
+separated by commas.
+
+   For example:
+
+   `param_ctor<Complex>();' is the default Complex constructor.
+`param_ctor<Complex>(ByVal<double>("real"));' is the double-to-Complex
+implicit conversion constructor.
+`param_ctor<Complex>(ByVal<double>("real"),
+ByVal<double>("imaginary"));' is the Complex-from-two-doubles
+constructor.
+
+   Unfortunately, though this is ISO-C++, many compilers still balk at
+this syntax. For this reason, XParam is also willing to accept the
+following format for registering constructors:
+
+          param_ctor(TypeTag<registered_type>(), ... arglist ... );
+
+   In XParam, as in C++, constructors can also be declared "explicit",
+to prevent their usage in implicit conversion paths. To register this,
+use the single-argument constructor, in either flavor, switching
+`param_ctor' with `param_explicit_ctor'. So, if we do not wish the
+Complex-from-double constructor to be allowed implicitly, all we need
+is to register it as
+
+          param_explicit_ctor<Complex>(ByVal<double>("real"));
+
+   or
+
+          param_explicit_ctor(TypeTag<Complex>(), ByVal<double>("real"));
+
+   Because XParam requires that all concrete classes have copy
+constructors, this constructor is registered automatically when you use
+"param_class" to register a concrete class.
+
+
+File: xparam.info,  Node: Creators,  Next: Conversion Functions,  Prev: Constructors,  Up: The Registration Interface
+
+Creators
+========
+
+   Not always is everything handed to us on a silver platter.  One of
+the many surprises life can have in store for you is that the class you
+wish to register does not support the interface you need.
+
+   How can that be? you ask. Well, many classes don't allow themselves
+to be set up completely at construction-time.  You build them up in a
+certain way, and then need a little more tweaking to get it exactly
+right. Consider, for example, the `std::vector'. If you want a vector
+of integers to be filled with the numbers one through five, in C++,
+this is the way to do it:
+
+          std::vector<int> v;
+          v.push_back(1);
+          v.push_back(2);
+          v.push_back(3);
+          v.push_back(4);
+          v.push_back(5);
+
+   In XParam, however, you want to do everything on a single
+construction line. The person who wrote the C++ interface could have
+omitted the possibility for complete construction on a single line
+because she didn't think it too important, or because (as in the case
+of `std::vector') the appropriate constructor isn't possible to program
+in C++. Either way, XParam may have a solution for you.
+
+   What you need to do is to program a creator. A creator is a functor
+class supporting the following interface:
+
+          class creator_name {
+            public:
+              static created_class_name* create( ... arglist ... );
+          };
+
+   where `arglist' is the list of arguments you want to send to the
+creator functor. It is composed of normal C++ arguments, not XParam
+argument passers.
+
+   Here's an example: a friend of mine programmed the following struct:
+
+          struct Point {
+            int x,y;
+          };
+
+   In C++, using this struct is no problem: you take a "Point" variable
+and assign whatever value you want to it. However, in XParam you want
+the initialization to be done right on the object definition line.  You
+therefore want to register the following creation functor:
+
+          class Point_creator {
+            public:
+              static Point* create(const int _x, const int _y) {
+                Point* rc=new Point;
+                rc->x=_x;
+                rc->y=_y;
+                return rc;
+              }
+          };
+
+   Make sure that in your creator the pointer to your created type is
+allocated using `new'.
+
+   Once the functor is set up, all you need to do is to register it:
+
+          param_creator<Point,Point_creator>(ByVal<int>("_x"),ByVal<int>("_y"));
+
+   or, for an ISO-challenged compiler:
+
+          param_creator(TypeTag<Point>(),TypeTag<Point_creator>(),ByVal<int>("_x"),ByVal<int>("_y"));
+
+   This example was perhaps a little contrived, but was given here for
+simplicity. Here is a real life usage:
+
+   Starting with version 1.2 of XParam, `std::map's and `std::pair's
+have very simple-to-use functions for registering them. However, people
+wanting to register the `std::map<std::string,int>' prior to version 1.2
+would have had to work a little harder to do so, because all
+registration calls would have had to be done manually. Here is how to
+register the creator of such a map from an explicit listing of its
+contents in the form `std::vector<std::pair<std::string,int> >'.  What
+we need to do is to program the following class:
+
+          class map_creator {
+            public:
+              static std::map<std::string,int>*
+               create(const std::vector<std::pair<std::string,int> >& v);
+          };
+
+   with the method implementation being, for example, this:
+
+          using namespace std;
+          
+          static map<string,int>*
+          map_creator::create(const vector<pair<string,int> >& v) {
+                typedef map<string,int> maptype;
+                typedef vector<pair<string,int> > vectype;
+          
+                maptype* rc=new maptype();
+                for(vectype::const_iterator i=v.begin();i!=v.end();++i) {
+                  (*rc)[i->first]=i->second;
+                }
+                return rc;
+          }
+
+   Armed with this, all you need is the following registration command
+(assuming the rest of map, vector and pair have already been
+registered):
+
+          using namespace std;
+          param_creator<map<string,int>,map_creator>(ConstRef<vector<pair<string,int> > >("v"));
+
+   Or, for an ISO challenged compiler:
+
+          using namespace std;
+          param_creator(TypeTag<map<string,int> >(),TypeTag<map_creator>(),ConstRef<vector<pair<string,int> > >("v"));
+
+   As constructors, XParam creators, too, can be declared to be
+"explicit". This is done by switching `param_creator' with
+`param_explicit_creator'
+
+   In general, the syntax for creator registration is the following:
+
+          param_creator<my_class,my_class_creator>(... arglist ...);
+
+   or
+
+          param_creator(TypeTag<my_class>(),TypeTag<my_class_creator>(),... arglist ...);
+
+   or
+
+          param_explicit_creator<my_class,my_class_creator>(arg);
+
+   or
+
+          param_explicit_creator(TypeTag<my_class>(),TypeTag<my_class_creator>(),arg);
+
+   The "arg" and "arglist", of course, are the XParam argument-passers
+list that matches the argument list given in the functor.
+
+   When registering a creator, an output function, or any other
+functional object, in XParam, the registered class, or at least its
+interface, must be visible to the registration code.  For this reason,
+if you separate the functors from the registration code, you will want
+to `#include' their header files in the registration file.
+
+   In *Note The Registration Interface::
+
+   section, we mentioned the fact that, unlike in C++, XParam does not
+allow you to register two constructors for ClassA, one from a pointer
+to ClassB, the other from a constant reference to ClassB. This is
+because XParam uses the same syntax to signify both. If you encounter
+this problem, or any other reason why XParam does not allow you to
+register the constructors that you want to use, you may want to use
+creators as a workaround. Consider, for example, this creator
+functional object:
+
+          class workaround {
+            public:
+              static ClassA* create(const ClassB* const b, const Dummy&) {
+                return new ClassA(b);
+              }
+          };
+
+   If you register it, you will be able to use the
+Class-A-from-ClassB-pointer constructor by invoking this creator, which
+receives an extra "Dummy" parameter.  If you already have the
+ClassA-from-const-ClassB-reference constructor and class "Dummy"
+registered, this workaround allows you to use the user syntax
+`a=ClassB(...)' to signify the construction of ClassA from a ClassB
+const reference (assuming `a' is a paramter of type ClassA), and to use
+`a=ClassA(ClassB(...),Dummy())' to signify a ClassA-from-ClassB-pointer
+construction. Such workarounds are hardly ever needed, but it is useful
+to know they can be used in the unlikely case you're going to need them.
+
+   Note: there is a more elegant way of working around this problem,
+and it doesn't utilize creators at all. Programming in C++, you may
+sometimes find yourself adding a dummy class to your program in order
+to solve an ambiguity. For example, you may want to add the class
+"Length" to your program, simply to differentiate between `Vector(7)'
+and `Vector(Length(7))'.  The same solution works in XParam: program
+and register class WorkaroundPtr that has an explicit constructor from a
+"const ClassB* const" and a conversion operator to a "ClassA".  Using
+it, you'll be able to differentiate between
+
+          a=ClassA(ClassB(...))
+
+   indicating a construction from a "ClassB" constant reference, and
+
+          a=ClassA(WorkaroundPtr(ClassB(...))
+
+   indicating a construction from a "ClassB*" pointer.
+
+
+File: xparam.info,  Node: Conversion Functions,  Next: Vectors Lists Sets Maps and Pairs,  Prev: Creators,  Up: The Registration Interface
+
+Conversion Functions
+====================
+
+   In C++, one can define a conversion either in the form of a
+conversion constructor, or in the form of a conversion operator. Both
+because these have slightly different behaviors, and because we wanted
+to keep the conceptual difference that the C++ language makes, XParam
+also allows the registration of conversion operators. These have the
+following format:
+
+          param_conversion_operator(SourceTag<source_type>(),TargetTag<target_type>());
+
+
+File: xparam.info,  Node: Vectors Lists Sets Maps and Pairs,  Next: Output,  Prev: Conversion Functions,  Up: The Registration Interface
+
+Vectors Lists Sets Maps and Pairs
+=================================
+
+   It is impossible, in XParam, to register templates directly.
+However, it is possible to register template instantiations.  So, for
+example, one can not register the template `std::vector', but one can
+register any of its specializations, such as `std::vector<int>' and
+`std::vector<Duck>'.
+
+   For some of the basic STL templates, XParam provides registration
+commands that allow you to register an instantiation in a single
+command. These commands are not much more than functions that run all
+the relevant registration commands. The STL templates for which XParam
+provides this functionality are:
+   * std::vector<`T'> (vector<`T'>)
+
+   * std::list<`T'> (list<`T'>)
+
+   * std::set<`T'> (set<`T'>)
+
+   * std::map<`KeyType',`ValueType'> (map<`KeyType',`ValueType'>)
+
+   * std::pair<`FirstType',`SecondType'>
+     (pair<`FirstType',`SecondType'>)
+
+   where the names in parentheses are the XParam names given to these
+C++ types, in which the "std::" prefix has been omitted for convenience.
+
+   The command to register an `std::vector' over a type "T" is:
+
+          param_vector<T>();
+
+   Registering `std::vector<`T'*>' and `std::vector<const `T'*>' is
+done by these two commands, respectively:
+
+          param_ptr_vector<T>();
+
+   and
+
+          param_const_ptr_vector<T>();
+
+   Registration commands for `std::list' are analogous to those
+provided for `std::vector'. They are:
+
+          param_list<my_class>();
+          param_ptr_list<my_class>();
+          param_const_ptr_list<my_class>();
+
+   Registration of `std::map' is done using the following commands:
+
+          param_map<KeyType,ValueType>();
+          param_ptr_map<KeyType,ValueType>();
+          param_const_ptr_map<KeyType,ValueType>();
+
+   which register the classes `std::map<`KeyType',`ValueType'>',
+`std::map<`KeyType',`ValueType'*>', and `std::map<`KeyType',const
+`ValueType'*>' respectively.
+
+   For `std::set' use the command
+
+          param_set<my_class>();
+
+   Finally, registration of `std::pair' has the following syntax:
+
+          param_pair<FirstType,SecondType>();
+
+   All the registration commands mentioned in this section assume that
+the types over which the templates are built (e.g. the scalar type of
+the `std::vector') have been registered elsewhere in the program.  They
+do not attempt to register them on their own.
+
+   Note: XParam pre-registers the `std::vector<`T'>' for all built-in
+types as well as for the `std::string'.
+
+
+File: xparam.info,  Node: Output,  Next: HVL TypedValueMap and RawBytes,  Prev: Vectors Lists Sets Maps and Pairs,  Up: The Registration Interface
+
+Output
+======
+
+   All the sections, so far, have dealt with input, i.e.  with the
+question of how user-input, whether from the command-line, from file or
+piped-in from another program, should be parsed and made into real,
+live, working objects. This section is different, because here you
+specify how you want XParam classes to serialize themselves back to a
+streamable output form, so that you can save them in a file, print them
+or e-mail them to your congress member.
+
+   The XParam output registration command is very simple:
+
+          param_output<my_class, my_class_output_functor>();
+
+   It is very similar to the registration of creators, but differs in
+the fact that there is no argument list, and that there is no need for
+a variation with `TypeTag's.  Any modern C++ compiler should be able to
+handle this form. (This is because it doesn't use explicit template
+function arguments. It is simply a constructor call.)
+
+   This command registers an output functor for your class.  However,
+you still need to supply the functor itself. To understand what this
+functor is and what it does better, recall that XParam outputs its
+variables in such a way that they are readable by XParam, in case you
+want to read them again from a different program or in a different
+time. So, XParam must be able to output a `Triangle', for example, in
+the following format:
+
+          Triangle(Point(5,6),Point(7,8),Point(10,1))
+
+   Naturally, this calls for a recursive approach. The output functor
+of class `Triangle' should tell XParam which three points should be
+output in order to describe this triangle, at which point XParam will
+recursively have to find out how to output a Point and finally how to
+output an integer. Neither of the latter two should be supplied by the
+`Triangle' class. It only needs to tell XParam which three `Point'
+objects compose it.  Here's how this is done:
+
+          class Triangle_output_functor {
+            public:
+              static ValueList sub_objects(const Triangle& t) {
+                ValueList vl;
+                return vl << Val(t.p1) << Val(t.p2) << Val(t.p3);
+              }
+          };
+
+   The interface of the output functor is always the same: it must
+support a public static method called `sub_objects' that receives a
+constant reference to the output variable and returns a variable of
+type `ValueList'. The way to fill this `ValueList' with the correct
+information is to construct it with a default constructor, and then to
+use
+
+          ValueList& operator<<(ValueList&,const Handle<ValueSource>&);
+
+   to append to it the sub-objects that compose the object to be
+printed.
+
+   After you register an output functor, it's a good idea to go back
+and check that you really do have a constructor that matches the output
+function, so that variables that have been serialized and then
+deserialized will return exactly to their original state. It can be
+very confusing if they don't.
+
+   We recommend supplying output capability to all classes you
+register. This will make the debugging process much more painless for
+both you and the programmer, and will make class usage much more
+convenient to the user (because class output is used in much of
+XParam's help-giving and error-handling mechanisms). If you don't, any
+attempt to serialize the class and output it will result in
+
+          classname(NO OUTPUT FUNCTION)
+
+   Which is not readable as input to another program using XParam
+parameter handling.
+
+
+File: xparam.info,  Node: HVL TypedValueMap and RawBytes,  Next: Dynamic Loading,  Prev: Output,  Up: The Registration Interface
+
+HVL TypedValueMap and RawBytes
+==============================
+
+   *Note The Registration Interface::  part of this manual describes
+special syntax available for the initialization of vectors, lists, sets
+and maps. It allows the user of these classes to explicitly list their
+contents on a single initialization line, something that is impossible
+in C++.
+
+   This is not really a special property of lists, vectors, sets and
+maps. You can make your classes behave this way, too, if you want your
+classes to be able to be initialized with a non-predetermined number of
+parameters.  What happens behind the scenes is that each of these
+special interfaces is handled by a class (or rather, a class template)
+that XParam is familiar with. The syntax
+
+          [ element, element, element ]
+
+   actually initializes a variable of type `xParam::HVL<T>', where T is
+the type of the element values. ("HVL" stands for "Homogenous Value
+List".) We simply provide `std::list' and `std::vector' a creator from
+this type. You can program such a creator for your classes as well.
+Similarly, `std::vector', `std::set' and `std::list', when output,
+create an `HVL' that holds their data and output it as their single
+sub-object. This creates the same syntax in the output of these types.
+
+   The syntax
+
+          { key1 => val1, key2 => val2, key3 => val3 }
+
+   Works in precisely the same way. It is really the syntax for the
+template class `xParam::TypedValueMap<KeyType,ValueType>'. We provided
+a creator and an output functor for the `std::map'.
+
+   Initializing your classes in the same way is not difficult, but it
+does take some understanding of these XParam template classes.
+
+   When you're creating your class from an HVL, you can treat it as a
+container, holding pointers of your element type. XParam does not
+actually use pointers - It uses smart pointers - but the "->" and "*"
+syntax will work as usual for you to retrieve your elements. The
+container itself holds all the functionality of an `std::vector'.
+
+   When creating an HVL from your class, in order to output your class,
+use the method
+
+          void append_copy(const T* t_ptr);
+
+   This will append a copy of the element pointed to into the HVL.
+
+   To clarify, here is a simplified version of the output functor of the
+`std::vector', as defined in XParam's own code:
+
+          template<class T>
+          class VectorOutput {
+          public:
+            static ValueList sub_objects(const std::vector<T>& vec) {
+              HVL<T> hvl;
+              typename std::vector<T>::const_iterator i;
+              for(i=vec.begin(); i!=vec.end(); ++i) {
+                hvl.append_copy(i);
+              }
+              ValueList vl;
+              vl << Val(hvl);
+              return vl;
+            }
+          };
+
+   The `TypedValueMap' is very similar to the `HVL'.  Its version of
+`append_copy' looks like this:
+
+          void append_copy(const KEY& key, const VALUE* val_ptr);
+
+   When building an object from a TypedValueMap, you can consider it as
+a container holding a struct with two pointers, one called "key", and
+the other called "value". The container holds all the functionality of
+an `std::vector'. Here, too, XParam does not really use pointers, but
+the "->" and "*" syntax will work as expected.
+
+   Note: in XParam internals, the TypedValueMap is, infact, considered
+to be a special case of an HVL. This causes some unexpected behaviors,
+if you're really trying hard to make them happen. In particular, there
+are rare cases where a class expecting a "[ ... ]" will be
+initializeable by a "{ ... }", and there is a way to simulate the "{
+... }" syntax using only square brackets. Consider these to be
+undocumented features and their useage hazardous at best. Assume that
+they will not be supported in any future version.
+
+   One final note: if all this is too complicated for you, you can
+always resort to initializing your classes from a vector or from a list.
+The disadvantages of this method are:
+  1. The conversion weight associated with converting from the special
+     syntax to your class will be higher. If you're not sure what the
+     consequences of this are, look at the *Note Conversion Rules::
+     appendix of this manual.
+
+  2. The performance will be suboptimal when initializing your class,
+     because of all the copying taking place. In future versions, we
+     expect the initializtion using the HVL/TypedValueMap to become
+     more rigorously optimized, and the differences will soar.
+
+  3. Your class will not look as good in output.
+
+   One last special syntax available in XParam initializations is the
+
+          raw<<< ... >>>
+
+   format. This indicates a binary dump of data, meant for
+machine-machine communication (which is why it isn't considered part of
+the user interface).
+
+   This format translates to a class of type `RawBytes' that can be used
+in your initializations and serializations. A complete overview of
+`RawBytes' is provided in the *Note RawBytes::  section of *Note The
+Registration Interface:: .
+
+
+File: xparam.info,  Node: Dynamic Loading,  Next: Checking for Blocked Registration Calls,  Prev: HVL TypedValueMap and RawBytes,  Up: The Registration Interface
+
+Dynamic Loading
+===============
+
+   We have already mentioned that XParam can load classes, including
+their registration information, dynamically.
+
+   In order to do this, XParam must have the information of what to
+load when a certain class is needed. This information should be
+supplied in the form of an `XPN' file. An `XPN' file is a file with an
+`xpn' extension which contains one or more
+
+          [class1, class2] => [file1, file2]
+
+   sequences. The particular line in the example states that if either
+`class1' or `class2' is needed, `file1' and `file2' should both be
+dynamically loaded. Any amount of white-space can be added in the `XPN'
+files, except in the middle of a class name literal, a file name, or
+the `=>' symbol. If a list of classes contains only one class, the
+brackets around it may be omitted. Likewise if the file list contains
+only a single file, the brackets around its name may be omitted.  `XPN'
+files may also contain single line comments, these being lines
+beginning with the character '#'.
+
+   You may have as many `XPN' files as you want, and place them in any
+directory you want (as long as it is accessible to XParam). However,
+the full list of all directories containing `XPN' files should be
+available in the environment variable `XPARAM_CLASSPATH'.
+
+   In the *Note Usage Examples::  section, a program using dynamic
+loading is demonstrated.
+
+   Note: XParam currently does not support dynamic loading under
+Windows.  You must link in your classes and their registration commands
+statically, instead.
+
+
+File: xparam.info,  Node: Checking for Blocked Registration Calls,  Next: Creating Template Registration Commands,  Prev: Dynamic Loading,  Up: The Registration Interface
+
+Checking for Blocked Registration Calls
+=======================================
+
+   As you may have noted, certain registration calls require other
+registration calls as prerequisites. When, for example, you register
+that `class A' is a derived type from `class B', XParam expects both
+`class A' and `class B' to be correctly registered.
+
+   In C++, it is impossible to determine in which order the registration
+commands will be processed. To overcome this difficulty, XParam employs
+a technique we call "delayed registration". Essentially, delayed
+registration means that when you ask XParam to register the inheritance
+relationship, it does not automatically do so, but rather defers the
+registration until such time when all of its dependence conditions
+(e.g. the registration of `class A' and the registration of `class B')
+will be fulfilled.
+
+   For this reason, if you omit the registration call for one of your
+classes, this will cause XParam to defer indefinitely all registration
+calls pertaining to it, and, effectively, this will cause all these
+registration calls to be completely ignored.
+
+   Registration commands that have already been enqued, but which are
+yet to be executed because they lack their prerequisites are referred
+to, in XParam, as "pending" registration calls. To make sure that none
+of your registration calls remains pending after all registration
+commands have been processed (which means that some class registration
+call has been forgotten) use the command
+
+          xparam_help("PENDING");
+
+   This will return a string describing all pending registration
+commands.
+
+   This information is also accessible from the command-line. Simply
+type
+
+          myprog ! PENDING
+
+   to have the same string printed as the program output. The program
+will halt after printing. This interface is useful in debugging your
+registration calls.  If everything goes well, at the end of the
+registration process, the "PENDING" directive should return "No
+registration commands are pending."
+
+
+File: xparam.info,  Node: Creating Template Registration Commands,  Prev: Checking for Blocked Registration Calls,  Up: The Registration Interface
+
+Creating Template Registration Commands
+=======================================
+
+   As has been mentioned before, it is impossible to directly register
+a template into XParam, but it is possible to register template
+instantiations.  In the section regarding *Note Vectors Lists Sets Maps
+and Pairs::  we have shown several registration commands that allow
+you, on a single line, to register an entire template instantiation. In
+this section, we will explain how you can create registration commands
+for your own templates, in the same way. This is a rather advanced way
+of using XParam, and we recommend that you first gain some practice in
+manual registration, before attempting this automatization.
+
+   After reading this section, you may want to refer to the file
+`xpv_reg_pair.h', which is part of XParam's include files. This file
+implements the registration command `param_pair'. This command is fully
+implemented only using syntax described here and open for your usage.
+
+   The other registration commands available in XParam which register
+template instantiations (`vector's, `list's, `set's and `map's) use a
+small amount of syntax not yet exported to the XParam registrator. This
+is meant in order to register vectors (etc.) of elements, pointers to
+elements and const pointers to elements all in the same class. It is
+very simple to register all these classes without the benefit of this
+added syntax.  The files registering these classes (`xpv_reg_vector.h',
+`xpv_reg_list.h', `xpv_reg_set' and `xpv_reg_map.h') can therefore also
+serve as good sources to learn from.
+
+   In essence, creating your own registration call for a template
+instantiation involves two steps:
+  1. Implement a `RegCommand' class, such that objects of this class
+     can be enqued along with the rest of the registration commands,
+     and will be able to perform the actual registration when all
+     prerequisites are registered.
+
+  2. Create a registration interface.
+
+   The first of these two steps involves inheriting from
+`ClassRegCommand<`ClassName'>', where "ClassName" is the name of the
+class you want to register.
+
+   Note: the full name of `ClassRegCommand' is
+
+          template<class T, class ClassKind=ConcreteClassKind<T> > class ClassRegCommand
+
+   If the template you wish to register is a template of abstract
+classes, instead of inheriting from `ClassRegCommand<`ClassName'>',
+inherit from
+
+          ClassRegCommand<ClassName,AbstractClassKind<ClassName> >
+
+   In inheriting, you must specify which other classes are
+prerequisites for the registration of this class, and will probably
+want to override the method
+
+          virtual std::string type_name(void) const;
+
+   which should return the XParam name of the class you are registering.
+
+   Specifying dependencies is done at the construction of
+`ClassRegCommand'.  `ClassRegCommand' can be constructed in one of
+three ways. The simplest way is by
+
+          ClassRegCommand(const std::string& name);
+
+   This constructor is meant for classes which have no dependencies, and
+whose name can be given using an explicit string. Though this is the
+constructor used in the `param_class' registration command, it is most
+likely that you will not be able to make use of it in registering
+templates, because virtually all template classes will need to depend,
+somewhere, on the types that are their template parameters. The `pair'
+class template, for example, depends on its two sub-types for both its
+constructors and its output function.
+
+   Note: this is the only constructor available for `ClassRegCommand'
+where the class name is given in the constructor. In all other cases,
+you will need to override the `type_name' method of `ClassRegCommand'.
+
+   The second way to construct a ClassRegCommand is
+
+          ClassRegCommand(const std::vector<const std::type_info*>& deps);
+
+   This vector contains the `type_info's of all classes that your class
+depends on, for its correct registration. Though this is the most
+generic interface to `ClassRegCommand', you normally don't need more
+than one or two prerequisites for your class. In this case, you can opt
+for the third way to construct a `ClassRegCommand'. The third way is to
+use the `type_info's of the classes your registration depends on
+directly as the constructor arguments for the `ClassRegCommand'.
+XParam supports this for zero, one and two dependencies. Here is the
+relevant constructor for two depenedencies:
+
+          ClassRegCommand(const std::type_info& dep1, const std::type_info& dep2);
+
+   Now that we have correctly set the dependencies for our new class,
+it is time to give it a name. This is done by overriding the `type_name'
+method of `ClassRegCommand'. Here is the implementation of the
+`type_name' method for pair:
+
+          template<class X, class Y>
+          virtual std::string PairRegCommand<X,Y>::type_name(void) const {
+            return "pair<"
+                   + xparam_or_cpp_name(typeid(X))
+                   + ","
+                   + xparam_or_cpp_name(typeid(Y))
+                   + ">";
+          }
+
+   XParam can not and does not check whether all possible
+instantiations of your registration class will yield legal XParam type
+names. However, when this class is instantiated, the type name it
+yields is checked, and if it is not legal, an error is thrown.
+
+   Note, in the `PairRegCommand' implementation, the use of
+`xparam_or_cpp_name'. `xparam_or_cpp_name' is the correct way to refer
+to the names of other classes in the `type_name' method.  This function
+normally behaves like `xparam_name', which is the behavior you would
+normally want and expect when giving names to your templates. However,
+the `type_name' method also has another usage: it is used in reporting
+errors. In error reporting, especially when the error occurs during the
+registration process, it is impossible to guarantee that the
+sub-classes will already be registered.  `xparam_or_cpp_name' attempts
+to return the `xparam_name', but if it is not yet registered, it
+returns the C++ `type_name', instead.
+
+   Using `xparam_name' in this context is a mistake, because attempting
+to print an error message regarding the template instantiation will
+trigger an attempt to access the information of its subclasses, which
+may trigger dynamic loading, force other registration calls to be
+executed, and, ultimately, cause you not to receive the error message
+which caused it all.
+
+   Once your RegCommand class is correctly defined, it is time for the
+second step of registering a template: define a registration interface
+appropriate for your template.
+
+   All of XParam's registration commands are either template functions
+or definitions of an anonymous variable of a template class, where all
+registration commands are enqued in the constructor. The same format can
+be used for your extensions, as well.
+
+   `param_pair' for example is a template class. Its constructor calls
+`param_class' to register the new class, `param_ctor' to register a
+constructor for it, and `param_output' to register its output function.
+This is all that is required in order to fully register a new instance
+of the `std::pair' template.
+
+   Note, however, that in running the relevant `param_class'
+registration command we don't want to use the simple form
+
+          param_class<ClassName>("ClassNameInXParam");
+
+   Instead, we opt to register our new type's `RegCommand'. This is done
+by a different interface to the same registration command:
+
+          param_class<ClassName>(ClassRegCommand<ClassName>*);
+
+   (`param_abstract_class', too, has an analogous interface.)
+
+   Note that `param_class' receives ownership over this pointer, and it
+is `param_class"s responsibility to free its memory, when it is done.
+This is done using the `delete' command. You should not access the
+pointer after it has been passed to `param_class'.
+
+   One typical way to make sure that the pointer passed to `param_class'
+is not accessed anywhere else in the program is to allocate it while
+passing it to `param_class'. Here's how this is done in the constructor
+of `param_pair<X,Y>':
+
+          param_class<Pair>(new PairRegCommand<X,Y>());
+
+
+File: xparam.info,  Node: Installing XParam,  Next: Usage Examples,  Prev: The Registration Interface,  Up: Top
+
+Installing XParam
+*****************
+
+* Menu:
+
+* Installation in Unix::
+* Installation in Windows::
+* Making Changes::
+

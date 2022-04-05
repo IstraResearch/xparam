@@ -1,0 +1,4 @@
+Known Bugs:
+===========
+1) XParam currently does not distinguish between "inf", "-inf" and "nan".
+   All non-numbers are treated as NaN.

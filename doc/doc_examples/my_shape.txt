@@ -1,0 +1,2 @@
+shape = [ Circle(Point(15,15),12), Circle(Point(9,9),4),
+          Circle(Point(21,9),4), Circle(Point(15,19),6) ]

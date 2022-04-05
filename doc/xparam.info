@@ -1,0 +1,89 @@
+This is xparam.info, produced by makeinfo version 4.1 from
+/tmp/linuxdoc-dir-24148/sgmltmp.xparam.info.2.
+
+   \input texinfo
+
+
+Indirect:
+xparam.info-1: 126
+xparam.info-2: 49290
+xparam.info-3: 98060
+xparam.info-4: 145357
+
+Tag Table:
+(Indirect)
+Node: Top126
+Node: Introduction658
+Node: The User Interface7434
+Node: General User Interface7886
+Node: Parameter Sets8427
+Node: Getting Help10321
+Node: Input Modes13373
+Node: Comments14792
+Node: Redirection15543
+Node: Basic Parameter Values18103
+Node: Complex Parameter Values20378
+Node: Constants25416
+Node: Flags26485
+Node: Relaxed Type Matching27106
+Node: Vectors Lists Sets and Globs30923
+Node: Maps35495
+Node: Pointer Syntax36404
+Node: Conversions39386
+Node: The Programmer Interface42260
+Node: General Programmer Interface42776
+Node: Initializing the Package43372
+Node: Val and Var44648
+Node: PtrVal and PtrVar46373
+Node: xParse48211
+Node: Saver and Loader49290
+Node: ParamSet51784
+Node: ParamSet Construction57523
+Node: Basic Operations58424
+Node: Help and Feedback60973
+Node: ParamSet Modes63746
+Node: ParamSet Warnings65219
+Node: Querying a ParamSet67606
+Node: Miscellania68758
+Node: Param69393
+Node: Polymorphism and Dynamic Loading70688
+Node: Error Handling73709
+Node: Working with Several ParamSets76861
+Node: Getting information from XParam81115
+Node: How Pointers Behave in XParam82696
+Node: RawBytes88175
+Node: The Registration Interface90427
+Node: General Registration Interface91022
+Node: The Basic Structure94117
+Node: Class Declarations98060
+Node: Inheritance101712
+Node: Constant Variables103110
+Node: Enumerators104601
+Node: Argument Passers107360
+Node: Constructors111177
+Node: Creators113105
+Node: Conversion Functions120902
+Node: Vectors Lists Sets Maps and Pairs121538
+Node: Output124174
+Node: HVL TypedValueMap and RawBytes127779
+Node: Dynamic Loading132939
+Node: Checking for Blocked Registration Calls134648
+Node: Creating Template Registration Commands136833
+Node: Installing XParam145123
+Node: Installation in Unix145357
+Node: Installation in Windows151069
+Node: Making Changes153744
+Node: Usage Examples155240
+Node: Intro to the Examples155485
+Node: Simple Example156303
+Node: Involved Example157692
+Node: Calculator Example159383
+Node: Frequently Asked Questions163055
+Node: Conversion Rules177439
+Node: Intro to the Conversion Rules177710
+Node: The Weights178466
+Node: Tentative Types180565
+Node: List Comparisons182058
+Node: Credits for Contributions to XParam185598
+
+End Tag Table

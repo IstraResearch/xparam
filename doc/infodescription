@@ -1,0 +1,3 @@
+* XParam: (xparam).		A general-purpose object serialization
+				framework for C++, especially suited for
+				command-line parsing and parameter handling.

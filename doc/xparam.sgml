@@ -1,0 +1,3782 @@
+<!doctype linuxdoc system>
+<article>
+<title>XParam - General-Purpose Object Serialization Framework for C++
+<author>Ronnie Maor &amp; Michael Brand
+<date>v1.22, 3 June 2003
+<abstract>The XParam Library User's Guide
+</abstract>
+
+<toc>
+
+<sect><heading>Introduction<label id="Introduction"></>
+<P>
+XParam was initially developed as a simple object-oriented tool for
+parsing command-line parameters. However, it evolved into a general-purpose
+tool for passing objects between applications. It has also been used as a
+plug-in framework for several applications. The name "XParam" is an
+abbreviation for "Transfer of Parameters".
+<P>
+In this section, we do not attempt to teach you how to use XParam's
+capabilities. This is left to the three interface-describing sections.
+The purpose of this section is to give you an idea of what XParam
+can do, and how it can help you in every program you write.
+<P>
+If you want to pass parameters that are of type <TT>int</TT>,
+<TT>std::string</TT> or other equally basic C++ types, XParam will
+give you, out-of-the-box, a very convenient syntax:
+<P><tscreen><code>
+~/bin&gt;a.out name=Mary age=17 height=1.6
+</code></tscreen><P>
+Despite the fact that quotation marks around <TT>Mary</TT> and other
+type descriptors are missing, this syntax is strictly typed: nothing
+other than an integer, or something that can be converted to an
+integer, can be passed as the <TT>age</TT> parameter, for example,
+because it was defined as an integer in the <TT>a.out</TT> program.
+<P>
+XParam's strength over other parameter-handling packages, however,
+lies in its extensibility.
+As an example, suppose you have, in your program, an abstract class,
+"Shape", with "Circle", "Arc" and "Composite" as concrete classes derived
+from it, where "Circle" is a circle object, "Arc" is an arc object and
+"Composite" is a shape composed of other shapes, such as Circle and Arc.
+Suppose further that you have a "Point" class, which may also be a
+drived class from shape, such that "Circle" has a constructor describing
+the circle by its center point and its radius and "Arc" has a constructor
+describing the arc by three points along it. A "Composite" object can be
+constructed from the vector of "Shape*" objects that compose it.
+<P>
+All these objects may have been written without taking into account that they
+will be used in XParam. In fact, they may be from a third-party library that
+you want to use. XParam can be used to input these classes from the user,
+as well as pass them between applications. For the user of your program,
+who wants to input a Composite object to a drawing program, usage of
+XParam may look like this:
+<P><tscreen><code>
+~/bin&gt;a.out 'my_shape=[ Circle(Point(50,50),50), Circle(Point(25,75),10),
+Circle(Point(75,75),10), Arc(Point(25,50), Point(50,25), Point(75,50)) ]'
+</code></tscreen><P>
+Here, the user described a smiling face. She did this by describing
+three "Circle" objects and one "Arc" object, just as she would have
+done in a constructor call inside a C++ program. These objects were
+placed inside brackets and separated by commas to indicate the
+construction of an std::vector&lt;Shape*&gt;. (XParam can deduce the vector
+type by its elements and by its usage. In cases of ambiguity, explicit
+construction of the vector is also possible.) This vector of shapes
+is then used to construct a "Composite" object. The resulting
+"Composite" object can then be assigned to "my_shape" and later used
+in the program. "my_shape" in this example can be a "Composite"
+object, a "Composite*" object, or a "Shape*" object. However, for the
+rest of the example, we will assume that it is a "Composite".
+<P>
+Inside your program, in order to allow the user to input his Composite
+in this manner, all you need to write is the following:
+<P><tscreen><code>
+#include &lt;xparam.h&gt; // The XParam library
+#include "shapes.h" // This is where your shape classes are defined
+using namespace xParam;
+
+int main(int argc, char* argv[]) {
+  Composite my_shape;
+  ParamSet ps; // define a parameter set
+  ps &lt;&lt; iParamVar(my_shape,"my_shape"); // define variables in the set
+  ps.input(argc,argv); // parse the command line into the set
+  my_shape.draw(); // my_shape is already initialized and ready to use
+  return 0;
+}
+</code></tscreen><P>
+So far, this may seem like magic. In fact, because C++ has no
+introspection capability, XParam really does need a little bit more
+information in order to work. What it needs is a description of the
+relevant parts of the classes you want XParam to be able to work with.
+This is called the "registration code". Here is what your registration
+code for the previous example should look like:
+<P><tscreen><code>
+#include &lt;xparam_extend.h&gt;
+#include "shapes.h"
+using namespace xParam;
+
+PARAM_BEGIN_REG
+
+  PARAM_CLASS(Point);
+    param_ctor&lt;Point&gt;(ByVal&lt;int&gt;("x"),ByVal&lt;int&gt;("y"));
+
+  PARAM_ABSTRACT_CLASS(Shape);
+    param_ptr_vector&lt;Shape&gt;();
+
+  PARAM_CLASS(Circle);
+    param_inheritance(DerivedTag&lt;Circle&gt;(),BaseTag&lt;Shape&gt;());
+    param_ctor&lt;Circle&gt;(ConstRef&lt;Point&gt;("center"),ByVal&lt;int&gt;("radius"));
+
+  PARAM_CLASS(Arc);
+    param_inheritance(DerivedTag&lt;Arc&gt;(),BaseTag&lt;Shape&gt;());
+    param_ctor&lt;Arc&gt;(ConstRef&lt;Point&gt;("start"),ConstRef&lt;Point&gt;("middle"), ConstRef&lt;Point&gt;("finish"));
+
+  PARAM_CLASS(Composite);
+    param_inheritance(DerivedTag&lt;Composite&gt;(),BaseTag&lt;Shape&gt;());
+    param_ctor&lt;Composite&gt;(ConstRef&lt;std::vector&lt;Shape*&gt; &gt;("shapelist"));
+
+PARAM_END_REG
+</code></tscreen><P>
+Though this may seem like some scripting language, it's actually
+C++ code that should be linked in with the rest of your project.
+Moreover, this registration process can be done by a third party, it
+needs no knowledge of your program, and is virtually non-intrusive
+to the registered objects. (All XParam requires is that concrete
+types have copy constructors.)
+<P>
+That's all there is to it. The code presented here is all you need
+to write in order to give your shape library a convenient user-interface.
+<P>
+As you can see, usage of the XParam library can be separated into
+three parts, and the next three chapters of this user's guide are divided
+accordingly.
+The first part deals with the interface that XParam provides for the
+user of your programs. This can be found in
+<ref id="The User Interface" name="The User Interface"> section. Next comes the
+interface provided for the programmer. This is described in
+<ref id="The Programmer Interface" name="The Programmer Interface"> section. Finally,
+we deal with the registration process and the interface provided for
+it. This
+is <ref id="The Registration Interface" name="The Registration Interface"> section.
+<P>
+The rest of this user's guide is devoted to installation instructions,
+examples of XParam's usage, a FAQ page, an appendix describing XParam's exact
+conversion rules and a list of credits for contributions to XParam.
+
+<sect><heading>The User Interface<label id="The User Interface"></>
+<sect1><heading>General User Interface<label id="U-general"></>
+<P>
+In general, the user interface provided by XParam tries to look and
+feel as much like object construction inside a C++ program as
+possible. Some features have been added, to make XParam more convenient
+for its particular usage, but as a general guideline it would be
+fair to assume that if something is a legal object construction
+sequence in C++, it would also be recognizeable by XParam.
+<sect1><heading>Parameter Sets<label id="parametersets"></>
+<P>
+The most straight-forward usage of XParam is to read a parameter set
+from the command line. It looks something like this:
+<P><tscreen><code>
+~/bin&gt;a.out name=Mary age=17 height=1.6
+</code></tscreen><P>
+A parameter set is list of parameters, each of the form
+<TT><IT>parameter_name</IT> = <IT>parameter_value</IT></TT>. In this
+example, we assigned a value to three parameters: parameter "name"
+was assigned the value "Mary", parameter "age" was assigned the
+value "17", and parameter "height" was assigned the value "1.6".
+XParam is not sensitive to the order in which the parameters are
+assigned, so it would have been equivalent to write "age=17 name=Mary
+height=1.6".
+<P>
+The parameter set is also insensitive to
+white space, if it is not inside a parameter name or
+a parameter value. So "name=Mary" is equivalent to "name  =  Mary",
+but not to "na me=Mary" or to "name=Ma ry". In the sections dealing
+with parameter values, we will go over special cases in which
+spacing and tabulation are allowed inside a parameter value.
+<P>
+Parameter sets do not have to be read only from the command line.
+A Parameter set may appear in a file, or may originate from any input
+stream. If this is the case, line breaks are also permitted where
+spacing and tabulation are permitted, with the exception noted
+in <ref id="complexparametervalues" name="Complex Parameter Values">.
+<P>
+You can add one semicolon to indicate the end of a parameter set, but
+this is not required. It is
+particularly useful if you're reading the parameter set from a stream.
+In this case, the semicolon will terminate the reading of the parameter
+set, even if the end of the stream has not been reached. Use this
+option if you want to read several parameter sets consecutively from
+a stream.
+<P>
+All information in a parameter set is case sensitive.
+<sect1><heading>Getting Help<label id="U-gettinghelp"></>
+<P>
+Possibly the first thing you'll want to do when encountering a
+program is to find out what input it expects. You can do this, in
+XParam, by executing the program with one of the following as its
+single argument: "!", "/h", "/H", "/?", "/help", "-?" or "--help".
+This will result in a table similar to the following being printed:
+<P><tscreen><code>
+This program determines whether the applicant will get the job.
+
+Usage: progname &lt;param1&gt;=&lt;val1&gt; &lt;param2&gt;=&lt;val2&gt; -&lt;flag1&gt; -no_&lt;flag2&gt;...
+Use any unambiguous prefix of the parameter names
+In case of multiple assignment to the same parameter, the last holds.
+
+Name       Type   I/O Default Value Description
+====       ====   === ============= ===========
+name       string  I  [ required ]  Applicant's name
+age        int     I  [ required ]  Applicant's age
+height     double  I  [ required ]  Applicant's height in meters
+experience int     I  0             Years of experience the applicant has
+result     bool    O                Did the applicant get the job?
+</code></tscreen><P>
+This table indicates that there are five parameters in this set, only
+four of which are input parameters. The program expects you to enter
+a "name" parameter, an "age" parameter and a "height" parameter, for
+these are all required values. If you do not enter these, XParam
+will inform the program that certain parameters are missing, and most
+likely the program will print an error and abort. On the other hand,
+the fourth input parameter, "experience", will default to zero unless
+otherwise stated.
+<P>
+The fifth parameter, "result", is an output parameter. In XParam, one
+can define parameters to be output only, indicated by "O", as is "result",
+or to be used in both input and output, indicated by "I/O". The customary
+way of using XParam will lead all the output and input/output parameters
+to be printed out to the standard output at the end of the program's run
+in the same format as the input, so that programs using
+XParam parameter handling can be piped into each other. The programmer,
+however, may circumvent this at will. A more detailed discussion of this
+appears in the <ref id="paramset" name="ParamSet"> section
+of <ref id="The Programmer Interface" name="The Programmer Interface">.
+<P>
+As can be seen, the parameters are all strictly typed. Entering "17.5"
+as Mary's age would have resulted in a conversion. Using "medium" as her
+height would have resulted in an error.
+All user-errors detected by XParam are handled by
+throwing the relevant exceptions to the main program. The program
+can then handle the error as the programmer sees fit. For the
+purpose of this document, we will assume that the programmer chose
+to report the error and halt, which is the most simple and common
+thing to do.
+<P>
+In the section
+<ref id="complexparametervalues" name="Complex Parameter Values">, a
+second method for getting help in XParam is discussed.
+<sect1><heading>Input Modes<label id="modes"></>
+<P>
+You may have noted the two lines above the table of parameters:
+<P><tscreen><code>
+Use any unambiguous prefix of the parameter names
+In case of multiple assignment to the same parameter, the last holds.
+</code></tscreen><P>
+These lines inform you of the input mode the programmer has chosen for
+this program. XParam can recognize parameters by any unique prefix of
+their names, or it may require you to enter the full name of the parameter.
+<P>
+XParam can also handle multiple assignments to the same parameter in
+several different ways, which are chosen by the programmer. XParam's
+default mode is that the last assignment holds. However, the programmer
+can change this so that the first assignment will hold, or so that
+multiple assignments to the same parameter are considered an error.
+<P>
+When you execute the program with "--help" or an equivalent option,
+XParam tells you what its current mode of operation is, so that you
+know how to enter your data correctly.
+<P>
+Note: In prefix mode, if two of your parameters have names that are
+prefixes of each other, this does not cause ambiguities. XParam will
+always opt for the shortest match. So, if "munch" and "munchkin" are
+both names of parameters the program, the input "mu" will only match
+"munch", whereas "munchk" will only match "munchkin".
+<P>
+<sect1><heading>Comments<label id="comments"></>
+<P>
+If your parameter set is not on the command line, you can add comments
+to it. The character "#" signifies the start of a comment, whether it appears
+in the middle of a line or in the beginning. The comment continues
+until the end of the line, and stops there.
+So, you can have an input file that looks
+like this:
+<P><tscreen><code>
+#File: marydata.txt
+#This is the applicant that seems most likely to get the job.
+name=Mary
+age=17 # Her only problem is that she's a little young for the job.
+height=1.6
+</code></tscreen><P>
+Comments are allowed in almost any place where spacing and tabulation are
+permitted.
+<sect1><heading>Redirection<label id="redirection"></><P>
+If you want to input many parameters, or if your parameter values are
+very long and complex, you probably don't want to keep them on the
+command-line. It would be more convenient for you to keep them in a
+file, where you can edit them and re-use them at will. To help you,
+XParam provides two different redirection features.
+<P>
+The simpler of the two redirection features is parameter-set redirection.
+Using it, you can read some or all of your parameters from a file.
+For example, if you write, on the command-line
+<P><tscreen><code>
+~/bin&gt;a.out @marydata.txt experience=2
+</code></tscreen><P>
+XParam will recognize the "@" redirection symbol, and will first read
+the "name", "age" and "height" parameters from the file "marydata.txt",
+before returning to parse the rest of the command-line, and reading
+"experience" from it. You can redirect to as many files as you want
+on a single command-line, and these redirections can appear in any
+order and in any place where a list of parameters is expected.
+<P>
+Nested redirections are also permitted. That is, the file "marydata.txt"
+may also contain a "@" redirection that will direct some or all of the
+parameters to be read from a second file, and so on. XParam does not
+limit the depth of such multiple redirections, but circular redirections
+are not allowed.
+<P>
+The second form of redirection is to redirect a
+single parameter value. This form also uses the "@" redirection symbol,
+and looks like this:
+<P><tscreen><code>
+~/bin&gt;a.out name= @namedata.txt age= @agedata.txt height= @heightdata.txt
+</code></tscreen><P>
+If you have parameters that have very long and complex values, or if you
+plan on reusing values, you may find this redirection scheme very useful.
+This form of redirection can be used in any context where a value is
+expected.
+<P>
+The file to which you are redirecting, in this case, can include comments,
+but beside the comments only the value should appear. For example:
+<P><tscreen><code>
+#File: agedata.txt
+#Mary may be a little too young for this job.
+17
+</code></tscreen><P>
+Though XParam is mostly used to read parameter sets, it also allows the
+programmer to read and write single values. Using this feature, a
+program can read "agedata.txt" directly. In any case, nested redirections
+are allowed here, too.
+<P>
+If you want to redirect part of your input to be read from the standard
+input (for example, if you want to pipe an entire parameter set from
+one program to another), use "@stdin".
+<sect1><heading>Basic Parameter Values<label id="basicparametervalues"></><P>
+In general, XParam recognizes the built-in C++ types, as they are recognized
+inside a C++ program: 7 denotes an integer, '7' - a character, "7" -
+a string, 7U - an unsigned int, 7L - a long int and 7UL - an unsigned long
+int, 7.0 - a double, 7.0f - a float. On systems where long double is
+supported, 7.0L will be considered a long double. If long long is supported,
+XParam will recognize integer values larger than the capacity of a "long"
+variable as long long, or as unsigned long long, if they are followed by
+the letter 'U'. An 'L' following long long and unsigned long long is also
+allowed. Note that XParam distinguishes
+between a string and a pointer to a char, and that, unlike in C++, the string
+"7" will be recognized as an std::string in XParam, and not as a pointer
+to a char.
+A more in-depth discussion of this can be found in the
+<ref id="argumentpassers" name="Argument Passers"> section
+of <ref id="The Registration Interface" name="The Registration Interface">.
+<P>
+In strings and in characters, XParam also recognizes the '\n' format for
+special characters, as well as hexadecimal notation: '\x0D'. Note that
+if you're using hexadecimal character notation, you must enter exactly
+two hexadecimal digits: both '\xD' and '\x00D' are mistakes. Integers
+can be input in decimal (<TT>17</TT>), hexadecimal (<TT>0x11</TT>),
+octal (<TT>021</TT>) or binary (<TT>0b1001</TT>).
+Floating point numbers observe the standard C++ notation, so all
+the following examples are correct forms of doubles: <TT>17.6</TT>,
+<TT>1.76E1</TT>, <TT>+01.7600e+01</TT>, etc.
+Using the '\c' notation in conjunction with characters that have no
+special meaning ('\c', '\d', '\0', etc.) will be interpreted as using
+the character itself (so this is equivalent to 'c', 'd' and '0',
+respectively). Naturally '\\' is used to denote a backslash, '\"',
+when in a string literal, denotes quotation marks and '\'', when in
+a character literal, denotes an apostrophe.
+<P>
+As in C++, comments, spacing and tabulation are not allowed within any
+of these literal constants. However, outside literal constants, comments
+spacing, line breaking and tabulation are allowed in any place within
+the definition of a parameter value.
+<sect1><heading>Complex Parameter Values<label id="complexparametervalues"></><P>
+XParam's main strength is in its extendability. You do not have to limit
+yourself to the built-in C++ types, but can use any class you wish.
+The way this is done is as follows: every class in C++ can be constructed
+from simpler classes. The way to do so is described in the classes'
+constructors. For example, if I have a class "Triangle" which has a
+constructor accepting three "Point" instances, and class "Point" has
+a constructor accepting two integer objects, then these describe how
+a Point can be constructed from two integers, and a Triangle from
+three Point objects.
+<P>
+XParam takes advantage of this by allowing you to define the value of
+a parameter of type Triangle in this way: "Triangle(Point(5,7),
+Point(1,10), Point(3,6) )". This line is handled in much the same way
+as it would have been handled inside a C++ program. First, all the
+integer literals are recognized. Second, three Point objects are
+constructed using the Point-from-two-integers constructor. Last, the
+desired Triangle is constructed using the Triangle-from-three-Points
+constructor.
+<P>
+In addition to simple class names, XParam can also recognize class names
+that are template specializations. For example: "Matrix&lt;const int*&gt;"
+is a legal class names in XParam. The words "Matrix", "const" and "int",
+int this example, are considered literals, in the sense that no white
+space can appear in the middle of them. XParam also disallows the use of
+white space between the first literal in a class name and the symbol
+immediately following it (which will be '(' if the literal is the entire
+name of the class, '&lt;' if it is a template name, and '::' if it is a
+scope qualifier). This is meant to enable XParam's parser to efficiently
+distinguish between class names and relaxed string literals. (see the
+section regarding
+<ref id="relaxedtypematching" name="Relaxed Type Matching"> for an explanation of relaxed string literals.)
+<P>
+With these exceptions, white space is allowed anywhere inside a
+parameter value.
+<P>
+Note that this line "Triangle(Point(5,7), Point(1,10), @thirdpoint.txt)"
+is also allowed. The third point of the triangle is read from the file
+"thirdpoint.txt". This is simply a parameter value redirection, where
+the read value is used as part of a more complex value.
+<P>
+In general, XParam only uses object constructors and conversion operators
+in order to construct objects. However, in a few cases, the programmer
+of the classes may have neglected to provide suitable or
+convenient constructors for his classes, for a number of reasons.
+To circumvent this problem, XParam allows the class registrator
+to provide other functions, beside class constructors,
+that create instances of the required type. From a user's point-of-view,
+these creators are indistinguishable from regular constructors. For
+this reason, you may find that some "constructors" you use in XParam
+are not available to you inside C++ programs.
+<P>
+XParam class names, such as <TT>Triangle</TT>, are usually the same as
+the names of the C++ classes they represent. However, in some cases,
+we have opted for abbreviations. The <TT>std::vector&lt;T&gt;</TT> and
+the <TT>std::string</TT> classes, for example, are called
+<TT>vector&lt;T&gt;</TT> and <TT>string</TT> respectively in XParam.
+This is merely an abbreviation. XParam can handle fully qualified names
+such as <TT>std::basic_string&lt;char, std::char_traits&lt;char&gt;,
+std::allocator&lt;char&gt; &gt;</TT>, but these are much more
+cumbersome to use. On the other hand, no XParam class name can include
+a modifier. Therefore <TT>long int</TT>, <TT>const double</TT>,
+<TT>unsigned char</TT>, <TT>static float</TT> and <TT>volatile string</TT>
+are all unallowed as XParam class names. In general, <TT>volatile</TT>
+and <TT>static</TT> are considered to be unuseful modifiers in the
+XParam context, <TT>const</TT>, which is generally meaningful only
+in the context of argument passing mode, is handled transparently by
+XParam, as is discussed in
+the <ref id="pointersyntax" name="Pointer Syntax"> section,
+and <TT>long</TT> and <TT>unsigned</TT>, which are allowed
+only for the basic types, have been integrated as part of the
+registered class name: XParam uses <TT>long</TT>, <TT>uchar</TT>,
+<TT>ushort</TT>, <TT>uint</TT> and <TT>ulong</TT> instead of <TT>long int</TT>,
+<TT>unsigned char</TT>, <TT>unsigned short</TT>, <TT>unsigned int</TT>
+and <TT>unsigned long int</TT>,
+respectively. As these types are hardly ever explicitly converted to,
+one rarely needs to use these names in actual invocations.
+On systems that support these types, XParam also defines
+<TT>longlong</TT>, <TT>ulonglong</TT> and <TT>long_double</TT>, which
+are the C++ types <TT>long long</TT>, <TT>unsigned long long</TT> and
+<TT>long double</TT> respectively.
+<P>
+If you want to use a certain class, but are not sure what
+constructors are available for it, use the format
+<P><tscreen><code>
+~/bin&gt; a.out ! classname
+</code></tscreen><P>
+This will give you full information about the class, in a user-friendly
+format. Instead of the classname, you can also enter the name of a
+constant of the class type, with the same effect. Constants are explained
+in detail in the next section.
+<sect1><heading>Constants<label id="U-constants"></><P>
+In addition to explicitly built parameters, XParam also allows you to use
+constants in your variable initializations. The registrator can define
+constants of any XParam-recognized class, as well as any enums.
+In addition to this, there are
+several constants which have been pre-defined: "true" and "false" are
+booleans, "NaN" is that ISO not-a-number of type double (also functioning
+as a positive and negative infinity), "NaNF" is its
+equivalent float and "NaNL" is the long double version, if your compiler
+supports long doubles. Last but not least, "NULL" can match any pointer type.
+<P>
+The syntax for constants is very simple: simply use their name in your
+definition. For example:
+<P><tscreen><code>
+~/bin&gt; my_prog b = false
+</code></tscreen><P>
+will assign the value 'false' to 'b', if 'b' is a variable of type boolean.
+<P>
+As all parameter values, constants can be used as constructor parameters
+to build other classes, and can undergo conversions.
+<sect1><heading>Flags<label id="flags"></><P>
+One exception to the <TT><IT>parameter_name</IT> = <IT>parameter_value</IT></TT>
+sequence is the use of flags. XParam allows the syntax
+<P><tscreen><code>
+-parameter_name
+</code></tscreen><P>
+to be used instead of
+<TT><IT>parameter_name</IT>=true</TT> and
+<P><tscreen><code>
+-no_parameter_name
+</code></tscreen><P>
+to be used instead of <TT><IT>parameter_name</IT>=false</TT>, if
+<TT><IT>parameter_name</IT></TT> is a parameter of type bool. The two
+notations are completely interchangeable. XParam does not support
+flags that have names starting with <TT>no_</TT>. Behavior of
+XParam if such a flag is used is undefined.
+<sect1><heading>Relaxed Type Matching<label id="relaxedtypematching"></><P>
+Often, it is cumbersome to write <TT>name="Mary"</TT> instead of
+<TT>name=Mary</TT>. This is especially true on the command-line in a
+Unix environment, because shell parsing would require you to write
+<TT>'name="Mary"'</TT> for the quotation marks not to disappear in
+the parsing. To alleviate this problem, XParam provides a more
+relaxed user interface, in which tentative
+type matching is allowed in the stage of explicit literals.
+<P>
+If we look at the example <TT>name=Mary</TT> more closely, we can see
+that <TT>Mary</TT> can not be parsed as anything other than a string.
+It's too long to be a character, isn't entirely composed of digits,
+and doesn't have parentheses which may indicate that this is a complex
+parameter value. The only remaining option is a string literal constant.
+<P>
+Here's another example: <TT>num=7</TT>. If <TT>num</TT> is defined as
+an integer, then the <TT>7</TT> will also have to be an integer, for if
+it is treated as a string, instead, there will be no way to convert it to an
+integer, for it to be assigned into <TT>num</TT>. This is known as
+destination driven type matching. Though C++ doesn't support this form of
+type matching, it is nevertheless an accepted form of strict-typed syntax,
+and XParam makes full use of it.
+<P>
+It is therefore often possible, only by looking at the context in which
+literal constants are used, to deduce their type. When this is the case,
+XParam does not require you to use quotation marks or apostrophes around
+your string and character literals. XParam considers the literal to be
+of a "tentative" type until the exact type can be deduced, or, in cases
+of ambiguity, notifies the program that the type can not be deduced.
+The program will then most likely choose to report this and halt.
+<P>
+If you wish to explicitly state the type of your literal, you can always
+do so, by using the full syntax detailed in the
+<ref id="basicparametervalues" name="Basic Parameter Values"> section. The
+relaxed syntax is meant for your convenience, and in no way compromises
+XParam's type strictness.
+<P>
+Specifically in the case of tentative types that can only be resolved as
+strings, we have imposed several restrictions on XParam, so that not
+any arbitrary string of characters will be recognizeable as a string.
+There are two reasons for these restrictions:
+<enum>
+<item>So that strings will not be confusable with the rest of the XParam
+syntax. For example: "int(7)", if not quoted, can be parsed as a legal
+integer initialization. We have also added restrictions meant for
+syntax extensions we mean to add in the future.</item>
+<item>So that strings will not be confusable with typing errors. For
+example, "int(7", if not quoted, is not a legal integer initialization,
+but is nevertheless more likely to be a typing error than an
+intentionally typed string.</item>
+</enum>
+Generally, the guidelines we used to define what a tentative string
+can match were designed so that any ordinary file name will be
+accepted.
+<P>
+However, you should be aware that XParam makes its best efforts to
+make any input you give it into a legal initialization, and in doing
+so can actually misinterpret user errors into legal initializations
+that the user didn't mean. Here's one example: suppose that "duck"
+has a normal construction from a string and an explicit construction
+from an integer. This would mean that both "d=some_string" and
+"d=duck(7)" are legitimate initializations. However, if you, by
+accident, typed in "d=7", you would probably expect XParam to tell
+you that this is not a valid initialization. Well, it is and it
+won't: the "7" can be interpreted as a string, in which case the
+initialization can be completed as read, and that's exactly what
+XParam will do.
+
+<sect1><heading>Vectors, Lists, Sets and Globs<label id="U-lists"></><P>
+
+Another tentative type recognized by XParam is the heterogenous value list.
+This is denoted by a sequence of values separated by commas that is placed
+within brackets. For example:
+<P><tscreen><code>
+[ Point(1,1), Point (1,10), Point(10,10), Point(8,2) ]
+</code></tscreen><P>
+A heterogenous value list, or HVL for short, can be the converted into
+other, more directly accessible types.
+Out-of-the-box, XParam comes with
+the ability to convert HVLs to the following class types:
+<itemize>
+<item><TT>st::vector&lt;<IT>T</IT>&gt;</TT></item>
+<item><TT>st::list&lt;<IT>T</IT>&gt;</TT></item>
+<item><TT>st::set&lt;<IT>T</IT>&gt;</TT></item>
+</itemize>
+The XParam registrator can
+add more types which can be constructed from value lists.
+<P>
+The conversion from an HVL to a different type is done
+by converting all the elements in the list to type <TT><IT>T</IT></TT>,
+and using them as the elements of the constructed object.
+XParam tries to deduce the relevant type
+<TT><IT>T</IT></TT>
+according to the types of the elements in the value-list and by the context
+in which it is used. If no relevant type is found, or if an
+ambiguity occurs, an XParam user-error will be thrown.
+Here's an example of assigning to an <TT>std::list</TT>. 
+<P><tscreen><code>
+my_list = [1, 2.3, -4]
+</code></tscreen><P>
+If the parameter <TT><IT>my_list</IT></TT> is an <TT>std::list&lt;int&gt;</TT>
+then all the elements will
+be converted to <TT>int</TT>s. If it's a
+<TT>std::list&lt;double&gt;</TT> then the
+elements will 
+be converted to <TT>double</TT>s. It is also possible to specify the type
+explicitly:
+<P><tscreen><code>
+my_list = list&lt;int&gt;([1, 2.3, -4])
+</code></tscreen><P>
+In addition to constructing a <TT>vector</TT> or <TT>list</TT> by
+providing all the elements
+explicitly, in XParam a <TT>vector</TT> or <TT>list</TT> can also be
+initialized in the usual C++ way, using
+either default constructor
+<P><tscreen><code>
+vector&lt;int&gt;() # an empty vector
+</code></tscreen><P>
+or using a constructor with two arguments - the number of elements, and a value
+which will be used for all the elements:
+<P><tscreen><code>
+vector&lt;int&gt;(3,7) # same as [7,7,7]
+</code></tscreen><P>
+The <TT>std::list</TT> can be constructed using its default constructor.
+<P>
+Because brackets are also characters that are used by the shell,
+XParam provides a relaxed syntax here, too. If your value-list is two
+or more elements long, the brackets can be omitted, and XParam
+will be able to tell that this is a value-list by looking at the
+commas separating the elements. This relaxed syntax is only
+available on the top-level of an assignment, not in any other
+context. So, this:
+<P><tscreen><code>
+a = [ 1, 2, 3 ]
+</code></tscreen><P>
+is equivalent to this:
+<P><tscreen><code>
+a = 1, 2, 3
+</code></tscreen><P>
+but in the following two examples, no relaxed syntax is allowed:
+<P><tscreen><code>
+a=duck([ 1, 2, 3 ]) # value as a constructor argument
+[1, 2, 3] # just a value - no assignment
+</code></tscreen><P>
+One more syntax for inputting vectors is available in XParam. It is the glob.
+A glob is an assignment that looks like this:
+<P><tscreen><code>
+~/&gt; my_program a = : one two three :
+</code></tscreen><P>
+The syntax is composed of an openning colon followed by the items in the
+vector, with a closing colon at the end. This syntax is only available in
+the shell, because the separation of the list into objects is not done,
+as in all other lists, by commas. Instead, items are separated using
+shell separators. A shell separator is expected after the initial colon,
+before the closing colon, and between each pair of items in the list.
+<P>
+This syntax is useful, as its name suggests, in globbing scenarios.
+Consider, for example, the following initialization line:
+<P><tscreen><code>
+~/&gt; my_program my_files = : *.c *.o :
+</code></tscreen><P>
+If you're in a Unix shell, that parses the wildcards for you, before they
+are input into the program, then this command-line would initialize the
+parameter <TT>my_files</TT> as a vector of all filenames in the current
+directory ending in either "<TT>.c</TT>" or "<TT>.o</TT>".
+<P>
+For convenience, if the closing colon is the last character on the input
+line, it may be omitted.
+<P>
+Things to note about the globbing syntax:
+<enum>
+<item>This syntax only allows the initialization of values whose type is
+<TT>vector&lt;string&gt;</TT>, and no other type.</item>
+<item>The names in the globbed list are not "tentative literals", as may
+be expected. Within a glob, XParam is very liberal regarding what it
+may take for a string. This includes, for example, items containing
+white-space characters. XParam only uses shell separators, within globs,
+in order to separate or truncate names. The only restriction this
+imposes is that no string in the list may start with a colon, or else
+XParam will confuse it with the colon signifying the end of the glob.</item>
+</enum>
+<sect1><heading>Maps<label id="maps"></><P>
+XParam provides the following syntax for conveniently initialzing 
+the C++ types <TT>std::map&lt;<IT>KEY</IT>,<IT>VALUE</IT>&gt;</TT>:
+<P><tscreen><code>
+{ key1 => value1, key2 => value2, ... }
+</code></tscreen><P>
+Finding the correct types <TT><IT>KEY</IT></TT> and <TT><IT>VALUE</IT></TT>
+is done by methods similar to
+those used for <TT>vector</TT>s and <TT>list</TT>s,
+and depends on the actual values used
+in the <TT>map</TT>, as well as on the context in which the
+<TT>map</TT> is used. 
+For example, the following assignment:
+<P><tscreen><code>
+my_map = { 3 => 9, 4 => 16, 5 => 25 }
+</code></tscreen><P>
+will work if <TT><IT>my_map</IT></TT> is of type <TT>map&lt;int,int&gt;</TT>
+or <TT>map&lt;int,double&gt;</TT>, 
+or even <TT>map&lt;double,string&gt;</TT>.
+<P>
+The following assignment will work for
+<TT>map&lt;double,string&gt;</TT>,
+but will produce an XParam error in the case of 
+<TT>map&lt;int,int&gt;</TT> or <TT>map&lt;int,double&gt;</TT>:
+<P><tscreen><code>
+my_map = { 3 => "9", 4 => abc, 5 => 25 }
+</code></tscreen><P>
+<sect1><heading>Pointer Syntax<label id="pointersyntax"></><P>
+Some classes expect pointers to be passed on to them in constructors.
+In XParam, unlike in C++, you do not need to use special syntax in
+order to signify the fact that you are passing an object by pointer.
+Consider the following example:
+<P><tscreen><code>
+my_variable = ClassA( ClassB() )
+</code></tscreen><P>
+Looking at this syntax, it is impossible to tell, in XParam, whether
+ClassA's constructor expects a ClassB instance to be passed on to it
+by value, by constant reference or by pointer. Furthermore, it is
+impossible to tell whether my_variable, inside the C++ program, is
+a class instance or a class pointer. This leads to a very simple
+and straight-forward syntax for the XParam user. The drawback is
+that if a class has two constructors, one from a ClassB constant
+reference and the other from a pointer to ClassB, they can not both
+be registered as is. In the section dealing with registration
+interface we will return to this problem and show workarounds, but
+this problem is highly esoteric and hardly ever encountered.
+<P>
+Note that because <TT><IT>my_variable</IT></TT> in the example can be
+of type <TT>ClassA*</TT> just as well as it can be a <TT>ClassA</TT>
+instance, XParam allows the same syntax to be used to enable
+polymorphism. Consider the fact that <TT><IT>my_variable</IT></TT>
+can just as well be a pointer to a base class, from which ClassA
+is derived. XParam allows this use, and even enables
+<TT><IT>my_variable</IT></TT> to be a pointer to an abstract class.
+Consider this example:
+<P><tscreen><code>
+my_window=Window(Point(0,0),Point(100,100),Circle(Point(10,10),5))
+</code></tscreen><P>
+In this example, the user initializes a variable of type "Window",
+which will be in charge of a window on the graphic screen. The
+first two parameters indicate two corners of this window,
+establishing its position. The last, optional, parameter indicates
+which shape will be drawn inside this window initially. This
+parameter is of type <TT>Shape*</TT>, which is a pointer to
+an abstract class. The user, however, wrote <TT>Circle(...)</TT>,
+which XParam takes to be a pointer to a Circle, which will
+be used polymorphically as a <TT>Shape*</TT> object.
+<P>
+One particularly interesting use for this polymorphism is strategy
+management. For example, supposing my program displays URLs. It
+receives parameter "url" which will denote which URL to display.
+Variable "url" will be of type "URL*", where "URL" is an abstract
+class. The information of which protocol to use becomes part of the
+class information: <TT>url=HTTP("sourceforge.net")</TT> may be
+very different than <TT>url=FTP("sourceforge.net")</TT>.
+<P>
+In the registration section, we will go over how to dynamically link
+classes HTTP and FTP on the fly, when necessary, but for the user
+of XParam, when dynamically loading class libraries becomes necessary,
+it is performed automatically and unobtrusively. The user need not
+even know which of the classes she uses is statically linked and
+which dynamically.
+<sect1><heading>Conversions<label id="U-conversions"></><P>
+Throughout the discussion, we have often mentioned conversions.
+XParam allows conversions, both implicit and explicit, adhering to
+rules similar to those used by C++. XParam will always try to find
+the best possible conversion path, but can encounter situations in
+which no possible conversion path is found or more than one equally
+good conversion path can be considered the best. If such a case is
+encountered, an XParam user-error will be thrown.
+<P>
+For example: <TT>my_double=7</TT> will cause the <TT>7</TT>, an integer,
+to be cast into a double, with the value 7.0, which will then be assigned
+to the variable <TT>my_double</TT> of type double. This calls for a
+conversion between two built-in C++ types.
+<P>
+Another example would be <TT>my_swan=ugly_duckling()</TT>. Here, a
+value of type <TT>ugly_duckling</TT> is assigned into a variable of type
+<TT>swan</TT>. For this to succeed, XParam must find a way to convert
+an <TT>ugly_duckling</TT> into a <TT>swan</TT>. This is a user-defined
+conversion. As in C++, user-defined conversions receive a lower priority
+than conversions between built-in types.
+<P>
+The previous two examples were rather straight-forward. However, conversion
+sequences can be arbitrarily complex.
+Consider, for example, the execution line mentioned in the introduction:
+<P><tscreen><code>
+~/bin&gt;a.out 'my_shape=[ Circle(Point(50,50),50), Circle(Point(25,75),10),
+Circle(Point(75,75),10), Arc(Point(25,50), Point(50,25), Point(75,50)) ]'
+</code></tscreen><P>
+In the introduction, "my_shape" was considered to be a "Composite" object,
+but it can just as well be a pointer to a "Shape" object. Here's how this
+works:
+<P>
+First, a list containing three circles and one arc is created.
+The construction
+of these involves no casting whatsoever, implicit or explicit, but,
+conceivably, "Point"'s constructor could have expected two doubles, instead
+of two integers, in which case XParam would have silently and implicitly
+converted the integers to doubles. Next, the list of two circles and one
+arc is converted to an <TT>std::vector&lt;Shape*&gt;</TT> type.
+Note that for this to
+happen, the circles and the arc had to be implicitly considered to be
+pointers, instead of class instances, and had to then be upcast to their
+abstract base class Shape, so as to become "Shape*" objects. Once this
+is done, the std::vector&lt;Shape*&gt; is taken to be the single argument in
+the constructor of a "Composite" object - this is a user-defined conversion
+constructor. And finally, the "Composite" object is considered to be a
+pointer object, too, and upcast to its abstract base class, "Shape",
+becoming a polymorphic "Shape*" object, which can now be assigned to the
+relevant C++ variable.
+<P>
+All the necessary conversions along the path are silently and implicitly
+handled by XParam, with no manual involvement necessary.
+
+<sect><heading>The Programmer Interface<label id="The Programmer Interface"></>
+<sect1><heading>General Programmer Interface<label id="P-general"></><P>
+All of XParam's programmer interface appears in "xparam.h", which
+is a file that should be included wherever XParam's programmer
+interface is used. All the interface has been placed in the "xParam"
+namespace, and throughout this page, we will assume that the line
+<P><tscreen><code>
+using namespace xParam;
+</code></tscreen><P>
+appears in the beginning of your file. This will make the syntax
+simpler and the examples easier to follow.
+<sect1><heading>Initializing the Package<label id="init"></><P>
+Normally, you do not need to do anything special in order to start
+working with XParam in your program. However, during installation,
+the "--enable-explicit-init" option may have been activated. (see
+<ref id="Installing XParam" name="Installing XParam">). If this is the
+case, you will need to run the following function:
+<P><tscreen><code>
+xparam_init();
+</code></tscreen><P>
+prior to any use of XParam in your program.
+<P>
+The purpose of "xparam_init()" is to make sure that all registrations
+have been completed before XParam is used. Typically, you'll want
+"xparam_init();" to be the first line of your "main()", causing
+XParam to be useable anywhere after the beginning of "main()". Before
+reaching "main()" it is impossible to ascertain that all the registration
+code has been reached, so using XParam may lead to erroneous results.
+<P>
+Forcing explicit manual initialization will cause usage
+of XParam before calling
+"xparam_init()" to be considered an error. If the explicit manual
+initialization
+option was not used during installation, XParam will not require the
+use of "xparam_init()", and using it will have no effect.
+<sect1><heading>Val and Var<label id="valandvar"></><P>
+The most basic concept in the XParam library is that objects of any
+type can be serialized and deserialized.
+Here's how this is done:
+<P><tscreen><code>
+my_ostream &lt;&lt; Val(my_variable);
+my_istream &gt;&gt; Var(my_variable);
+</code></tscreen><P>
+These two lines can be separated into two parts. In the first
+line, we first used the
+function <TT>Val</TT> on <TT><IT>my_variable</IT></TT> to get a
+"Value Source" variable. This is a type of variable that can output
+XParam-serialized data, using <TT><IT>my_variable</IT></TT>
+as its information source.
+<P>
+Alternatively, in the second line, we used the function <TT>Var</TT>
+on <TT><IT>my_variable</IT></TT> to get a "Value Sink" variable. This
+is a variable that can receive XParam-serialized data and initialize
+<TT><IT>my_variable</IT></TT> with it.
+<P>
+A "Value Source" can be serialized using "operator &lt;&lt;" in the
+usual way, and, as usual, the output operator can be chained. The
+same is true for using the input operator on "Value Sink".
+<P>
+The C++ type that corresponds to an XParam "Value Source" is a class
+called "Handle&lt;ValueSource&gt;", whereas the "Value Sink" C++ type is
+a class called "Handle&lt;ValueSink&gt;". So, in C++ terminology, the
+interfaces used so far for serialization and deserialization are:
+<P><tscreen><code>
+template&lt;class T&gt; Handle&lt;ValueSource&gt; Val(const T&amp;);
+std::ostream&amp; operator&lt;&lt;(std::ostream&amp;,const Handle&lt;ValueSource&gt;&amp;);
+
+template&lt;class T&gt; Handle&lt;ValueSink&gt; Var(T&amp;);
+std::istream&amp; operator&gt;&gt;(std::istream&amp;,const Handle&lt;ValueSource&gt;&amp;);
+</code></tscreen><P>
+In this way, objects of all denominations can be handled in
+XParam: classes, structs, built-in types and enums.
+<sect1><heading>PtrVal and PtrVar<label id="ptrvalandptrvar"></><P>
+"PtrVal" and "PtrVar" are functions identical to Val and Var in their
+usage. The only difference is that "PtrVal" and "PtrVar" should only be
+used in conjunction with pointer types, whereas "Val"
+and "Var" should never be used with pointer types. One way to view this,
+is that PtrVal is used to reference exactly the same type as Val,
+but does it through the use of a pointer. The same can also be said
+about the relationship between Var and PtrVar.
+Unlike Val, PtrVal is also capable of handling <TT>NULL</TT>.
+<P>
+The C++ programming language does not require us to use different names
+for "PtrVal" and "Val" (as well as for "PtrVar" and Var"). The language
+is strong enough to detect whether a pointer type is used or not, and
+to use the pointer functionality when it is required and the non-pointer
+functionality when it is required. We decided, however, to keep the
+pointers separated from the non-pointers for two reasons:
+<enum>
+<item>Many compilers still do not handle this particular specialization
+well, and we wanted XParam to be available for as wide a user-base as
+possible.</item>
+<item>For you, the programmer, PtrVal and PtrVar behave slightly differently
+than Val and Var, because they allow polymorphism: a "Value Sink" that
+assigns its value to a "T*" variable can be used to place a pointer to
+any class derived from T in the pointer variable. This is, of course,
+not true for non-pointer variables.</item>
+</enum>
+So, these two lines should yield the same result:
+<P><tscreen><code>
+cout &lt;&lt; Val(x);
+cout &lt;&lt; PtrVal(&amp;x);
+</code></tscreen><P>
+if "x" is a non-pointer variable.
+<P>
+PtrVal can be given a pointer to any type, be it a class, a struct,
+a built-in type or an enumerator.
+<sect1><heading>xParse<label id="xparse"></><P>
+Sometimes, it is useful to be able to create a "value source" object from
+an XParam initialization line, instead of from a C++ object. This is
+done using the <TT>xParse</TT> function. This is a function that simply
+takes an XParam initialization in the form of a string, and converts it
+to a value source.
+<P>
+<TT>xParse</TT> is particularly useful in the context of <TT>ParamSet</TT>
+initializations (described fully in the
+<ref id="paramset" name="ParamSet"> section). There, default values for
+parameters are given as "value source" objects. Consider how much easier
+it is to write
+<P><tscreen><code>
+xParse("[1,2,3]")
+</code></tscreen><P>
+In order to tell XParam that this is the default value you want to set
+for a particular parameter, rather than to do it the C++ way:
+<P><tscreen><code>
+std::vector&lt;int&gt; temp;
+temp.push_back(1);
+temp.push_back(2);
+temp.push_back(3);
+</code></tscreen><P>
+And only then to be able to state the parameter's default value using XParam's
+<P><tscreen><code>
+Val(temp)
+</code></tscreen><P>
+<sect1><heading>Saver and Loader<label id="saverandloader"></><P>
+When we started testing XParam, we found that one use-case turned out
+to be particularly common. People wanted to communicate between
+programs using streams of objects: one program creates the objects
+and outputs them onto a stream; the other reads the stream and uses
+the objects. If this is what you need, here are two classes that
+you might find useful. Saver and Loader are both very small and
+very simple classes, but their functionality will make your
+programming life simpler and your programs easier to read.
+<P>
+"Saver" is used for serialization and "Loader" for deserialization.
+The syntax of their use is this:
+<P><tscreen><code>
+Saver(my_ostream) &lt;&lt; Val(my_variable);
+Loader(my_istream) &gt;&gt; Var(my_variable);
+</code></tscreen><P>
+This is equivalent to:
+<P><tscreen><code>
+my_ostream &lt;&lt; Val(my_variable) &lt;&lt; endl;
+my_istream &gt;&gt; Var(my_variable);
+</code></tscreen><P>
+As can be seen, "Saver" has the added functionality of adding "endl"
+after each variable, which is effective as an object separator.
+<P>
+The added functionality in "Loader" is the method "bool Loader::eof()"
+which eats white-space in the stream and returns whether EOF has been
+reached.
+<P>
+Here is an explicit listing of the C++ interface provided by the
+Saver and the Loader classes.
+<P><tscreen><code>
+class Saver {
+  public:
+    explicit Saver(std::ostream&amp; os);
+    Saver operator&lt;&lt;(const Handle&lt;ValueSource&gt;&amp;) const;
+};
+
+class Loader {
+  public:
+    explicit Loader(std::istream&amp; is);
+    bool eof();
+    Loader operator&gt;&gt;(const Handle&lt;ValueSink&gt;&amp;) const;
+};
+</code></tscreen><P>
+As can be seen, Saver and Loader accept any "value source" and
+"value sink" variables, so PtrVal and PtrVar can also be used in
+this context.
+<P>
+Though it does not seem that Saver and Loader add much, they are
+very convenient to use when you need to handle
+streams of objects. Consider this program segment, for example
+<P><tscreen><code>
+for(i=objlist.begin();i!=objlist.end();++i) {
+  Saver(cout) &lt;&lt; PtrVal(i);
+}
+</code></tscreen><P>
+yields, on the standard output, a list of objects separated by
+linebreaks, which can be piped into a program with the following
+read loop:
+<P><tscreen><code>
+Loader input(cin);
+while(!input.eof()) {
+  input &gt;&gt; Var(i);
+  ... // do whatever you want with "i" here.
+}
+</code></tscreen><P>
+<sect1><heading>ParamSet<label id="paramset"></><P>
+Class ParamSet is perhaps the most frequently used way to work with
+XParam. ParamSet is a class that allows you to work with as many
+named parameters as you want, simultaneously, and to use them as
+input parameters, output parameters, or both. Here is an example
+program using a ParamSet.
+<P><tscreen><code>
+#include &lt;string&gt;
+#include &lt;xparam.h&gt;
+using namespace xParam;
+
+int main(int argc, char* argv[]) {
+  std::string name;
+  int age, experience;
+  double height;
+  bool result;
+  ParamSet ps;
+  ps &lt;&lt; "This program determines whether the applicant will get the job."
+     &lt;&lt; iParamVar(name,       "name       ! Applicant's name")
+     &lt;&lt; iParamVar(age,        "age        ! Applicant's age")
+     &lt;&lt; iParamVar(height,     "height     ! Applicant's height in meters")
+     &lt;&lt; iParamVar(experience, "experience ! Years of experience the applicant has",Val(0))
+     &lt;&lt; oParamVar(result,     "result     ! Did the applicant get the job?");
+  ps.input(argc,argv);
+  ... // here is where the decision is made.
+  ps.output(cout);
+  return 0;
+}
+</code></tscreen><P>
+This is all the code you need to provide all the interface for the
+example given in the user-interface section. Let's go over it, line by line:
+<P><tscreen><code>
+#include &lt;xparam.h&gt;
+using namespace xParam;
+</code></tscreen><P>
+These two lines will probably appear in all your XParam programs.
+<P><tscreen><code>
+ParamSet ps;
+</code></tscreen><P>
+This line defines a ParamSet variable. It will store all the parameters
+we will use in this program, both input and output.
+<P><tscreen><code>
+ps &lt;&lt; "This program determines whether the applicant will get the job."
+</code></tscreen><P>
+All additions to a ParamSet's data are made using operator &lt;&lt;. The
+simplest addition is that of a string. This string serves as a general
+description of what the program does, and will appear in the start of the
+information printed when the program is invoked with the "--help" option
+(see <ref id="The User Interface" name="The User Interface"> section).
+<P>
+The description string can also be given to the ParamSet as its constructor
+argument. If several such strings are given to a single ParamSet, they are
+appended to each other and separated by line breaks when printed.
+<P><tscreen><code>
+     &lt;&lt; iParamVar(age,        "age        ! Applicant's age")
+</code></tscreen><P>
+As can be seen, operator &lt;&lt; can be chained, as usual, when inputting
+data to a ParamSet object. Beside strings, ParamSets can also accept
+objects declaring parameters. In XParam, these come in six different
+flavors. They are "iParamVar", "oParamVar", "ioParamVar",
+"iParamPtrVar", "oParamPtrVar" and "ioParamPtrVar". All have, more or less,
+the same format:
+<P>
+First, one must choose which of the six to use. "i" means that this parameter
+is meant for input only: it will be read when "ps.input()" is invoked, but
+its value will not be output when "ps.output()" is invoked. "o" is used
+for output parameters, such as the "result" variable in this case. "io"
+means that the variable will be both read and written. This is particularly
+useful for programs that accept information from one program, modify it
+slightly, and output it for use in another program.
+<P>
+The choice between "ParamVar" and "ParamPtrVar" depends on whether the
+variable that will be linked with this parameter (which is the first
+argument given - <TT>age</TT> in this case) is a pointer type or a
+non-pointer type. This is very similar to the distinction between "Var"
+and "PtrVar" that was discussed earlier, and here, too, the distinction
+could have been avoided, but was kept on purpose. Here, too, the variable
+can be a class instance, a struct instance, an variable of a built-in
+type or a variable of an enumerator type.
+<P>
+The second argument, after the name of the variable which will be associated
+with this parameter, is a string. This string signifies the name of the
+parameter, as it will be exported to the user. Here, the parameter's name
+is "age" and the variable it is associated with is also called "age".
+We recommend that in all cases the parameter's exported name will be the
+same as the variable it is associated with. It is very intuitive and will
+save you many mistakes later on.
+<P>
+After the parameter name, there is another, optional part of the string,
+which begins with an exclamation mark. This is the parameter's description,
+which will be available to the user when invoking the program with the
+"--help" option. So, the string can be in either of two forms: "parameter_name"
+or "parameter_name ! description of the parameter". Legal parameter names
+are legal C++ variable names: the name must start with an alphabetic
+character or with an underscore, and all its characters must be alphanumerics
+or underscores. The description, on the other hand, can be any string.
+<P>
+There is an optional third argument. It is used in the "experience" parameter:
+<P><tscreen><code>
+     &lt;&lt; iParamVar(experience, "experience ! Years of experience the applicant has",Val(0))
+</code></tscreen><P>
+This optional third parameter is the default value. It is presented
+as a "value source". If no default value is given, the parameter is
+considered "required" and not entering it will cause error handling to
+occur. There is no third parameter for output-only parameters.
+<P>
+Here is ParamSet's full interface, including methods which were not
+discussed so far:
+<P><tscreen><code>
+class ParamSet {                
+public:
+</code></tscreen><P>
+<sect2><heading>ParamSet Construction<label id="paramset construction"></><P>
+<P><tscreen><code>
+        ParamSet(std::ostream&amp; os=std::cout);
+</code></tscreen><P>
+The default constructor is the most convenient way of initializing
+a ParamSet. In addition, you can specify the name of an output stream, which
+will be used by the ParamSet to output replies to a "--help" request. The
+help-stream can be set and changed after construction using the
+<TT>set_hstream</TT> method.
+<P><tscreen><code>
+        explicit ParamSet(const std::string&amp;);
+</code></tscreen><P>
+Use this to initialize the general description string.
+<P><tscreen><code>
+        ParamSet&amp; operator&lt;&lt;(const std::string&amp;);
+</code></tscreen><P>
+Initialize the general description string if it hasn't been initialized
+yet, and append to it if it was already initialized. Consecutive strings
+appended to the general description strings are separated by line breaks.
+<sect2><heading>Basic Operations<label id="paramset basic ops"></><P>
+<P><tscreen><code>
+        ParamSet&amp; operator&lt;&lt;(const Handle&lt;Param&gt;&amp; param);
+</code></tscreen><P>
+The "Handle&lt;Param&gt;" class is the general class handling iParamVar,
+oParamVar, ioParamVar, iParamPtrVar, oParamPtrVar and ioParamPtrVar
+parameters.
+<P><tscreen><code>
+        void input(std::istream&amp;, bool check=true);
+</code></tscreen><P>
+ParamSets are not necessarily initialized from the command-line. Use this
+functionality to input data to the ParamSet from any std::istream. The
+"check" parameter, defaulting to "true", determines whether after inputting
+data from the stream the ParamSet will be checked to insure that all
+input parameters that do not have default values have been initialized.
+Change the value of "check" to "false" if you intend to input parameters
+from several sources, and make it "true" only for the last call to input,
+to make sure that all required parameters received a value.
+<P><tscreen><code>
+        void input(const int argc, const char* const argv[], bool check=true);
+</code></tscreen><P>
+This method has the same functionality as the previous one, but accepts an
+argc/argv like input, instead of using an input stream. This is the most
+common way to use ParamSets. In addition to what is given by "input(istream)",
+this method has the added functionality that if the user invokes one of
+XParam's help-getting options, such as "myprog --help" and "myprog ! int",
+this routine also provides the requested help on the help-stream of the
+ParamSet and exits.
+<P><tscreen><code>
+        void input(const char* const lpstr, bool check=true);
+</code></tscreen><P>
+This method is equivalent to the previous one, but uses a line parameter
+string instead of an argc/argv input. A line parameter string is a white-space
+delimited string, including the entire command line. Under Windows, this is
+a convenient input format.
+<P><tscreen><code>
+        void output(std::ostream&amp;=std::cout) const;
+</code></tscreen><P>
+Use this method to output all output parameters of your ParamSet. The
+parameters will be output in the same format as they are read, so output
+from one XParam program can easily be used as input to another XParam program.
+<P><tscreen><code>
+	void check(void) const;
+</code></tscreen><P>
+This method checks that no input variable is still without a value, but
+does this without receiving any more inputs. Using this method after
+method "input" has the same effect as turning the "check" flag in "input"
+to true.
+<P>
+For more ways of ParamSet inputting and outputting, see
+<ref id="P-paramset-misc" name="Miscellania">, below.
+<sect2><heading>Help and Feedback<label id="paramset help and feedback"></><P>
+<P><tscreen><code>
+        void set_hstream(std::ostream&amp; os);
+</code></tscreen><P>
+Set the help-stream used by the ParamSet. The help-stream is the output
+stream on which the ParamSet outputs replies to a "--help" request. If the
+help-stream is not set by a call to this method or at construction time,
+it defaults to the standard output stream (std::cout).
+<P><tscreen><code>
+        void info(void) const;
+</code></tscreen><P>
+This method prints a table listing all the usage information of the
+paramset to the help-stream of the ParamSet. It is the method invoked
+when the user runs the program with the "--help" option.
+<P><tscreen><code>
+        bool feedback_enabled(bool enabled);
+        bool feedback_enabled(void) const;
+</code></tscreen><P>
+It is often useful to provide feedback to the XParam user. Just like you
+expect to see characters on the screen as you type them, so does the XParam
+user expect to see some confirmation that XParam understood his or her
+input correctly, at the very start of the program's run. The first of
+these functions allows you to enable user feedback, which is printed when
+a call to <TT>ParamSet::input()</TT> is made. The second allows you to
+query the feedback mode.
+<P><tscreen><code>
+        void write_feedback(void) const;
+</code></tscreen><P>
+If, for some reason, you want user feedback to be provided at a time other
+than immediately after the call to <TT>input()</TT>, use this function.
+It will print the feedback when it is called, regardless of whether
+feedback is enabled or disabled.
+<P><tscreen><code>
+        void set_feedback_stream(std::ostream&amp; os);
+</code></tscreen><P>
+By default, XParam outputs feedback to the standard error stream. (Unlike
+help, which defaults to the output stream.) This default can be overridden
+by a call to <TT>set_feedback_stream()</TT>.
+<ref id="P-paramset-warnings" name="ParamSet warnings">
+are also output to the feedback stream.
+<P><tscreen><code>
+        int max_feedback_length(int n);
+        int max_feedback_length(void) const;
+</code></tscreen><P>
+Unlike XParam output, which is meant to be both human and machine readable,
+feedback is designed merely to help the user do some sanity checking on his
+or her input. It would not be very practical if the user was presented with
+a twenty-pages long dump of a particularly complex object, while other
+objects, smaller and more likely to have really originated from the user's
+command-line, are squeezed out of the terminal's memory.
+<P>
+For this reason, XParam feedback for each parameter's value can be truncated
+after a specific number of characters. This number is controlled by
+<TT>max_feedback_length</TT>, which can be both set and get by these two
+methods. Setting <TT>max_feedback_length</TT> to zero is equivalent to not
+truncating at all, which is the default.
+<sect2><heading>ParamSet Modes<label id="paramset modes"></><P>
+<P><tscreen><code>
+        MultipleAssignMode multiple_assign(MultipleAssignMode m);
+</code></tscreen><P>
+This is the first of several methods meant to control the input mode.
+This particular method accepts either one of three values: FIRST_HOLDS,
+LAST_HOLDS or IS_ERROR. This value determines how XParam will react if
+the user attempts to assign a value to the same parameter more than
+once. You can also use the syntax
+"<IT>paramset</IT> &lt;&lt; MultipleAssign(<IT>mode</IT>)" with the same effect.
+The default value of this option is LAST_HOLDS.
+<P><tscreen><code>
+        MultipleAssignMode multiple_assign(void) const;
+</code></tscreen><P>
+This method allows you to query the current mode without changing it.
+<P><tscreen><code>
+        MatchMode match(MatchMode m);
+</code></tscreen><P>
+This method lets you control the parameter name-matching algorithm. You
+can specify EXACT, if you want people to spell out the entire parameter
+name, or PREFIX, if any unambiguous prefix will do. The PREFIX mode is
+the default. Note that if any parameter name is the prefix of a different
+parameter name, a value that is a prefix to both is not considered an
+ambiguity. The shorter value prevails.
+<P><tscreen><code>
+        MatchMode match(void) const;
+</code></tscreen><P>
+Analogously to the multiple_assign directives, one can use this method
+to query the mode, and can use "<IT>paramset</IT> &lt;&lt; Match(<IT>mode</IT>)"
+as an alternate syntax for controlling the mode.
+<sect2><heading>ParamSet Warnings<label id="P-paramset-warnings"></><P>
+The default behavior for ParamSets is to halt on all errors. However, some
+errors are recoverable. If you want to receive recoverable problems as
+warnings, rather than have XParam throw an error on them, use the following
+methods to set <TT>warning_is_error</TT> to false:
+<P><tscreen><code>
+        bool warning_is_error(bool val);
+        bool warning_is_error(void) const;
+</code></tscreen><P>
+As usual, the first of these methods sets the value and the second reports
+it. Warnings are reported on the feedback stream.
+<P>
+Currently, XParam reports warnings in two scenarios.
+<enum>
+<item>When the user assigns to a parameter unfamiliar to the ParamSet</item>
+<item>When the user assigns to a parameter which can only be matched
+ambiguously. This can happen in <TT>PREFIX</TT> mode, if the parameter name
+given by the user is a prefix of two distinct parameters in the ParamSet</item>
+</enum>
+Though normally these problems are user errors and should be reported as
+such, sometimes it is preferable to demote them to warnings. Consider, for
+example, a program that uses XParam to output a ParamSet to a file,
+which is later to be read by several other programs. Each of the reader
+programs may need a different subset of the parameters in the ParamSet for
+its particular job, and it need not know of the rest of the parameters. In
+such a case, extraneous parameters are not erroneous.
+<P>
+Of course, you may argue that in this particular case, even a warning message
+will be superfluous. For this reason, XParam provides the following methods:
+<P><tscreen><code>
+        bool ignore_unexpected(bool ignore);
+        bool ignore_unexpected(void) const;
+</code></tscreen><P>
+These set and get the <TT>ignore_unexpected</TT> flag, which makes XParam
+ignore the first of the two warning situations completely, treating it
+as a legal initialization. By default <TT>ignore_unexpected</TT> is, of
+course, set to false. Use care when switching this flag on, because it will
+silently discard erroneous initializations, which can be due even to a simple
+typing mistake.
+<P>
+As a last safety net, we have designed this flag only to control the behavior
+of the first of the two warning scenarios. Ambiguous prefixes are still
+reported as usual (as errors or warnings, depending on your warning-handling
+state).
+<sect2><heading>Querying a ParamSet<label id="P-paramset-querying"></><P>
+<P><tscreen><code>
+        std::vector&lt;std::string&gt; names(void);
+</code></tscreen><P>
+This is the first of two methods whose purpose it is to let you query
+the ParamSet about the parameters in it. This particular method returns
+a list of the names of all parameters stored in the ParamSet.
+<P><tscreen><code>
+        const Param&amp; operator[](const std::string&amp; name) const;
+</code></tscreen><P>
+Once you know which names you want to query, you can use <TT>operator[]</TT>
+to give
+you more information regarding the parameter. The next section will detail
+this information at greater length. Note that this operator is affected by
+the current mode. If you're using <TT>Match(EXACT)</TT>, the operator will
+search for a parameter with this exact name. If you're using
+<TT>Match(PREFIX)</TT> it will take this to be a prefix, and attempt to
+complete it. In either case, if the search is unsuccessful, whether because
+no such parameter exists or because the search resulted in an ambiguity,
+an exception is thrown. (see the
+<ref id="errorhandling" name="Error Handling"> section for further details.)
+<sect2><heading>Miscellania<label id="P-paramset-misc"></><P>
+<P><tscreen><code>
+        void import(ParamSet&amp; ps);
+</code></tscreen><P>
+See section <ref id="manyparamsets" name="Working with Several ParamSets"> for
+a complete explanation of this method.
+<P><tscreen><code>
+};
+    
+std::ostream&amp; operator&lt;&lt;(std::ostream&amp;, const ParamSet&amp;);
+</code></tscreen><P>
+Usage of "operator&lt;&lt;" on a ParamSet is equivalent to outputting it
+to the std::ostream.
+<P><tscreen><code>
+std::istream&amp; operator&gt;&gt;(std::istream&amp;, ParamSet&amp;);
+</code></tscreen><P>
+Usage of "operator&gt;&gt;" on a ParamSet is equivalent to inputting it
+from the std::istream. Note that this keeps input checking on.
+<sect1><heading>Param<label id="param"></><P>
+When you invoke <TT>operator[]</TT> on a ParamSet, you get a reference
+to an instance of class xParam_internal::Param. The interface this
+class provides, allows you to query the parameter. Here it is:
+<P><tscreen><code>
+class Param {
+public:
+        bool is_input() const;
+</code></tscreen><P>
+Is the parameter an input parameter?
+<P><tscreen><code>
+        bool is_output() const;
+</code></tscreen><P>
+Is it an output parameter?
+<P><tscreen><code>
+        bool was_assigned_to() const;
+</code></tscreen><P>
+Did the user explicitly assign a value to this parameter?
+<P><tscreen><code>
+        bool has_default() const;
+</code></tscreen><P>
+Does this parameter have a default value?
+<P><tscreen><code>
+        bool has_given_value() const;
+</code></tscreen><P>
+Did XParam assign a value to this parameter (whether because of a default
+value or because of an explicit user assign)?
+<P><tscreen><code>
+        std::string name() const;
+</code></tscreen><P>
+The parameter's name. This is its full name, even if you found it using
+a prefix.
+<P><tscreen><code>
+        std::string description() const;
+</code></tscreen><P>
+The description string that was assigned to this parameter.
+<P><tscreen><code>
+        const std::type_info&amp; static_type_info() const;
+</code></tscreen><P>
+The static type info of the queried parameter's type.
+<P><tscreen><code>
+};
+</code></tscreen><P>
+<sect1><heading>Polymorphism and Dynamic Loading<label id="polymorphismanddynamicloading"></><P>
+We have already mentioned that the variables assigned to need not be
+class instances. They can just as well be pointers to classes, in which
+case PtrVar replaces Var, iParamPtrVar replaces iParamVar and ioParamPtrVar
+replaces ioParamVar. When taking advantage of this feature, XParam, just
+like C++, allows polymorphism. That is, it allows to assign an object
+of type "Derived*" to a variable of type "Base*". XParam provides this
+feature automatically, and there is nothing you need to add to
+your program to enable it.
+<P>
+This feature can be put to good use, especially in the context of
+strategy management. The user can specify the desired strategy by
+choosing a derived class of the base class serving as an interface.
+The execution line
+<P><tscreen><code>
+~/bin&gt; a.out 'url=HTTP("sourceforge.net")'
+</code></tscreen><P>
+will work even if the variable connected with "url" is a general
+"URL*" object. The user chose the protocol HTTP by choosing class
+HTTP which is, in the example, a derived class from URL. In addition,
+the XParam interface also allows the user to configure her strategy
+by supplying variables to the class constructor.
+<P>
+All this would have not been as useful as it is, if XParam hadn't
+allowed dynamic loading. However, the XParam library allows you to
+load any class the user specifies at run-time. So, for example, the
+program connected to the previous execution example may look like
+this:
+<P><tscreen><code>
+#include &lt;xparam.h&gt;
+
+class URL {
+  public:
+    virtual void display(void) const=0;
+    virtual ~URL(void) {}
+};
+
+int main(int argc, char* argv[]) {
+  URL* url;
+  ParamSet ps;
+  ps &lt;&lt; iParamPtrVar(url,"url",PtrVal((URL*)NULL));
+  if (url) { // if "url" wasn't initialized, it would assume the default value, null.
+    url-&gt;display(); // display the URL. The program contains no information regarding how this is to be done.
+  }
+  return 0;
+}
+</code></tscreen><P>
+This program has no knowledge of an "HTTP" class, nor of any way of
+displaying URLs, but the execution line can still work: when
+necessary, XParam will automatically dynamically link the class
+library containing the HTTP class and use it. No programmer
+intervention whatsoever is necessary. (Everything needed to
+allow this is outside the scope of the C++ program, and will be
+described in detail in
+<ref id="The Registration Interface" name="The Registration Interface"> section.)
+<P>
+Note: some platforms may not have any dynamic loading capability.
+In order for XParam to compile properly on these platforms, use the
+NO_DYNAMIC_LOADING flag at compile time. XParam does not currently
+support dynamic loading in Windows, so you should link your classes
+and their registration statically there. Polymorphism is supported
+in Windows as usual.
+<sect1><heading>Error Handling<label id="errorhandling"></><P>
+Throughout the operation of XParam, several types of errors can occur.
+One is illegal user input given at run-time. (An example of this is
+trying to assign a value of incompatible type to a parameter.)
+The second is illegal
+programmer input which could not have been detected at compile time.
+(An example of this is defining two parameters with the same name.)
+Finally, there are errors encountered inside user class constructors
+and output functions, which are run by XParam.
+<P>
+As for the first two kinds of errors, XParam handles them by throwing
+an <TT>xParam::Error</TT> exception. This is a class derived from
+<TT>std::exception</TT> and can likewise give an informative description of
+the problem using the <TT>what()</TT> method.
+<P>
+As for the third kind of error, the kind encountered in user code, the
+situation is a little bit trickier. If the user code aborts program
+execution, there is nothing to be done about it. If, however, the code
+throws an exception, this exception is caught by XParam, which will
+then throw its own <TT>xParam::Error</TT> exception class, describing where,
+exactly, the error was encountered. If the user exception's type is, itself,
+any derivative of <TT>std::exception</TT>,
+The exception generated by XParam will include in its description
+(available by the <TT>what()</TT> method) the description of the original
+exception which was thrown.
+<P>
+As a rule, no XParam function or method will ever throw anything other
+than an <TT>xParam::Error</TT> exception. In one special case, XParam throws an
+exception of type <TT>xParam::MatchError</TT>, which is a derivative of
+<TT>xParam::Error</TT>. This class is thrown when a ParamSet is queried
+about a non-existing or an ambiguous parameter. (see the
+<ref id="P-paramset-querying" name="Querying a ParamSet">
+subsection for details.)
+<P>
+The <TT>xParam::MatchError</TT> class has the added functionality of
+providing the method
+<P><tscreen><code>
+bool xParam::MatchError::ambiguous(void) const throw();
+</code></tscreen><P>
+which returns true if the queried parameter was ambiguous and false if it
+was not found in the ParamSet at all.
+<P>
+To conclude, here is the example given in the introductory section
+once again, but this time, complete with error handling.
+<P><tscreen><code>
+#include &lt;iostream&gt;
+#include &lt;xparam.h&gt; // The XParam library
+#include "shapes.h" // This is where your shape classes are defined
+using namespace xParam;
+using namespace std;
+
+int main(int argc, char* argv[]) {
+  Composite my_shape;
+  ParamSet ps; // define a parameter set
+  try {
+    ps &lt;&lt; iParamVar(my_shape,"my_shape"); // define variables in the set
+    ps.input(argc,argv); // parse the command line into the set
+    my_shape.draw(); // my_shape is already initialized and ready to use
+  } catch(Error e) {
+    cerr &lt;&lt; "Got the following error - " &lt;&lt; endl &lt;&lt; e.what() &lt;&lt; endl;
+    cerr &lt;&lt; "Aborting." &lt;&lt; endl;
+  }
+  return 0;
+}
+</code></tscreen><P>
+<sect1><heading>Working with Several ParamSets<label id="manyparamsets"></><P>
+Suppose that you are writing a Space Invaders game, where the algorithms
+for drawing and moving the aliens are loaded at run time into the program.
+Your main program doesn't have all the information about the various
+aliens. It simply calls method "Move" and method "Draw" of an object of
+a class derived from "Alien".
+<P>
+So far, so good. Using abstract interfaces of this sort is commonplace
+in object-oriented programming. What if, however, the Alien classes needed
+to be configured? Worse, what if you couldn't know, in advance, what
+extra information each alien race needs?
+<P>
+Here is a convenient solution:
+<P><tscreen><code>
+Class Alien {
+  public:
+    Alien(ParamSet&amp; ps) { set_up(ps); }
+    virtual void set_up(ParamSet&amp; ps) const=0;
+    virtual void initialize(const ParamSet&amp; ps)=0;
+
+    virtual void Move(void)=0;
+    virtual void Draw(void)=0;
+};
+</code></tscreen><P>
+You give the abstract Alien your ParamSet. In the method <TT>set_up</TT>
+the Alien adds "iParamVar" entries into the ParamSet, to indicate what
+information it needs. Then, after the call to <TT>input()</TT>
+in the main program, and after you have read all the information that
+the main program needs out of the ParamSet, you can return this ParamSet
+back to the Alien, for it to extract the rest of the information.
+<P>
+This is a good solution. Sometimes, in fact, it is the best solution.
+However, it does have its drawbacks. First and foremost of these is that
+the Alien now has access to all your parameters, and can wreak havoc there.
+Consider, for example, what would happen if the Alien, during <TT>set_up</TT>
+changed the input mode from PREFIX to EXACT? The Aliens do not have to
+be malicious for this to happen: a simple programming oversight can affect
+your whole program. So, what do we do? This is clearly not the encapsulation
+we strived for when we first took up a course in object oriented design!
+<P>
+Perhaps you will be more pleased with this, more elegant solution:
+<P><tscreen><code>
+Class Alien {
+  public:
+    virtual const ParamSet&amp; set_up(void) const=0;
+
+    virtual void Move(void)=0;
+    virtual void Draw(void)=0;
+};
+</code></tscreen><P>
+The Alien now manufactures a ParamSet object. This object can have "iParamVar"
+entries with references to local Alien members, which are not visible from
+the outside. It doesn't matter. When the Alien has finished constructing
+the ParamSet, it sends the ParamSet to the main program. In the main
+program you can now write:
+<P><tscreen><code>
+ParamSet ps;
+ps.import(alien->set_up());
+ps.input(argc,argv);
+</code></tscreen><P>
+This causes all the parameters defined by the alien to be imported into
+the global ParamSet. The global ParamSet is not affected by this action in
+any other way. The user can assign values to the parameters, and these
+will directly affect the Alien's members.
+<P>
+The Alien's original ParamSet is not required to remain in scope. It can be
+a local variable. If the Alien keeps the ParamSet, it will be able to query
+the parameters inside it, as if is was its ParamSet that had executed the
+<TT>input()</TT> command, and not the global ParamSet. The Alien does not,
+however, gain any access to parameters other than its own.
+<P>
+Note that for all this to work, the variables referenced by the Alien's
+ParamSet must, of course, remain within their definition scope (though
+they may be invisible). What this means is that keeping references to
+members of an Alien instance is OK (as long as the Alien is not destructed),
+but using references to local <TT>set_up</TT> variables is not. If the
+referenced objects go out of their definition's scope before the ParamSet
+goes out of its scope, it will contain dangling pointers.
+<P>
+The advantage of this method is in its simpilicity and the fact that it does
+not require you to register new types. In the future, we will provide a
+solution that will be adequate for heavy-duty handling of multiple paramsets 
+as well, and this solution is likely to become deprecated.
+<sect1><heading>Getting information from XParam<label id="P-gettinghelp"></><P>
+XParam offers you two functions in order to get information from your
+XParam classes. In a sense, XParam is returning a favor here: after
+the registrator
+(see <ref id="The Registration Interface" name="The Registration Interface">) explicitly
+gave the introspection information of her classes to
+XParam, XParam gives you, the programmer, an interface to this
+information, for whatever usage you may have for it. Here are the
+two functions:
+<P><tscreen><code>
+string xparam_name(const type_info&amp; type);
+string xparam_help(const string&amp; type_name);
+</code></tscreen><P>
+The first function, <TT>xparam_name</TT> is meant to give you the
+registered XParam class name for a real C++ class. For example,
+running <TT>xparam_name(typeid(unsigned char))</TT> will return
+<TT>"uchar"</TT>.
+<P>
+The second function, <TT>xparam_help</TT> will give you extensive
+information about a class, including its base types, types derived
+from it, its constructors, and conversion options to it. The format
+is self-explanatory. So, if you want introspection information
+about <TT>class duck</TT> all you have to do is to run
+<P><tscreen><code>
+cout &lt;&lt; xparam_help(xparam_name(typeid(duck)));
+</code></tscreen><P>
+and all the introspection information will be printed for you.
+<P>
+The function <TT>xparam_help</TT> is the function that is invoked
+when running "my_program ! my_class", discussed in the
+<ref id="complexparametervalues" name="Complex Parameter Values"> section
+of <ref id="The User Interface" name="The User Interface">.
+<sect1><heading>How Pointers Behave in XParam<label id="pointers"></><P>
+Though all the relevant information about pointers was mentioned
+before, here is a concise summary of the nuances you should be
+aware of when using pointers in XParam.
+<P>
+First off, consider the following program segment:
+<P><tscreen><code>
+int* i;
+ParamSet ps;
+ps &lt;&lt; ioParamPtrVar(i,"i");
+ps.input();
+</code></tscreen><P>
+There are several ways in which variable <TT>i</TT> can be initialized
+as a result of this code segment. As part of the input, the user can,
+for example, initialize <TT>i</TT> by adding an "i=7". The result,
+in C++ terms, will be equivalent to "i=new int(7)". This is the typical
+case. You will need to "delete i;" at the end of your program.
+<P>
+The exception to the rule that user initializations cause a call to
+<TT>new</TT> is when the user inputs "i=NULL" or one of its variations
+(e.g. "i=int(NULL)"). In this case, <TT>i</TT> itself will be assigned
+the value <TT>NULL</TT> and not, as in the previous case, <TT>*i</TT>.
+No call to <TT>new</TT> is executed and you do not need to run
+<TT>delete</TT>. (Though you can. C++ does not consider deleting a
+NULL pointer to be an error. The deletion does nothing, but the call
+does not guarantee that the pointer's value will remain NULL, so
+do not attempt consecutive deletions.)
+<P>
+However, there is yet a third option of what can happen during the
+call to "ps.input();". The user may ignore parameter <TT>i</TT>
+altogether and not give it a value at all. In this case, XParam will
+throw an exception, because <TT>i</TT> has no default value.
+<P>
+If <TT>i</TT> had had a default value, then not entering a value
+explicitly would have caused <TT>i</TT> to be initialized
+according to the default value given, in a
+very similar way: a default value of "Val(7)" would have caused
+an effect equivalent to "i=new int(7);" and a default value of
+"PtrVal((int*)NULL)" would have caused an effect equivalent to
+"i=NULL;".
+Note that the <TT>NULL</TT> must be cast explicitly to <TT>int*</TT>,
+or else XParam will not know how to make your <TT>void*</TT> value
+into a legal default value for parameter <TT>i</TT>.
+<P>
+When using default values, <TT>NULL</TT> is not the only pointer
+value you can apply. Any <TT>int*</TT> value can be used.
+Consider, for example, this code segment:
+<P><tscreen><code>
+int *default=new int(7), *i;
+ParamSet ps;
+ps &lt;&lt; ioParamPtrVar(i,"i",PtrVal(default));
+delete default;
+ps.output();
+delete i;
+</code></tscreen><P>
+Here, <TT>default</TT> can be any valid pointer value. The
+important things to note about this code segment are:
+<itemize>
+<item>Do not forget to use "PtrVal" instead of "Val" when using pointers.</item>
+<item>The default value is your pointer. You allocated it and you are
+responsible for deleting it.</item>
+<item>The default value is not the pointer actually used in <TT>i</TT>.
+The value from <TT>default</TT> is copied into a new place, which is
+allocated by XParam. Therefore, you have to delete, separately, both
+<TT>i</TT> and <TT>default</TT>. Just to emphasize this point,
+the pointer <TT>default</TT> in the example was deleted before the
+value of parameter <TT>i</TT> was output.</item>
+</itemize>
+
+In all examples up until now, the pointer variable to be used
+as a parameter was not initialized prior to the XParam calls.
+This is OK because this pointer's original value is discarded
+without deletion on the first time that XParam assigns a value
+to it. If you do explicitly allocate memory
+for it, make sure you deallocate it before you enter <TT>i</TT>
+into a paramset, or else your memory will be left dangling.
+<P>
+Here's a common mistake using pointers in XParam:
+it is tempting to believe that if you enter a non-NULL default
+value for a pointer variable, then you do not have to check
+that this pointer is not NULL after calls to XParam. This is
+not the case. When you run <TT>input()</TT> the user can
+still explicitly enter "i=NULL" and this will supersede the
+default value.
+<P>
+If you really do not want NULL to be an option, and are actually
+only using pointers instead of integers for your own convenience,
+then you don't need to use ParamPtrVar at all. Do this instead:
+<P><tscreen><code>
+int* i=new int;
+ParamSet ps;
+ps &lt;&lt; ioParamVar(*i,"i",Val(0));
+ps.input();
+</code></tscreen><P>
+In this example, XParam is completely unaware that the integer it
+is working on is on the heap. You allocated it and you should
+deallocate it, but for XParam it is simply an integer and can, of
+course, not take any <TT>NULL</TT> or other non-integer values.
+<P>
+This solution will not work, of course, if the reason you're using
+pointers is to allow polymorphism. Here, XParam should be made aware
+of the fact that it is dealing with pointers, and therefore a NULL
+value is a legitimate option.
+<P>
+One last point: how does memory handling work in the presence of
+exceptions? XParam will only assign deleteable values to your
+pointers. Therefore, if you're really worried about making your
+code exception-safe, here's how to do it:
+<P><tscreen><code>
+Shape* shape=NULL;
+ParameterSet ps;
+try {
+  ps &lt;&lt; iParamPtrVar(shape,"shape");
+  . . .
+} catch (Error e) {
+}
+delete shape;
+</code></tscreen><P>
+Because XParam guarantees that any value it assigns to <TT>shape</TT> will
+be deleteable, and because <TT>shape</TT>'s original value, <TT>NULL</TT>,
+is also deleteable, you can safely delete the pointer, wherever
+an exception may have occurred, and whether or not an exception
+did occur.
+<sect1><heading>RawBytes<label id="rawbytes"></><P>
+Suppose you have a large chunk of binary data that you want to serialize
+in an XParam way (for example, because you want to make sure that it is
+saved in a platform-independent format, or because you want to save it
+together with other objects that provide meta-data for it).
+<P>
+Saving this data, in XParam, as an <TT>std::vector&lt;unsigned char&gt;</TT>
+is a horrible waste of space. A more space-efficient method would have been
+to convert the data to a large <TT>std::string</TT> and to save it as such,
+but that method is unconvenient, slow, error-prone and - worst of all --
+it still doesn't solve the space problem. The resulting string can be saved
+in XParam into a space several times larger than what it can optimally take.
+Is there no way to condense the data somehow?
+<P>
+Well, if you want to save up to two gigabytes of data, there is.
+It's called <TT>RawBytes</TT>. <TT>RawBytes</TT> is a class
+inherited from <TT>std::vector&lt;unsigned char&gt;</TT> that can solve your
+problem. Inside your program, it behaves like a perfectly normal class. It
+even supports an XParam user-defined conversion to a
+<TT>std::vector&lt;unsigned char&gt;</TT>, so when you're reading one from an
+XParam initialization file, you don't even have to know about it most of the
+time. However, when this class is saved using XParam serialization, it forms
+a new literal. This literal has 13 bytes of overhead over what your data
+minimally needs, and has all the advantages of regular XParam serialization
+(except, of course, human readability, because <TT>RawBytes</TT> is saved in
+a binary format).
+<P>
+Here is a description of the <TT>RawBytes</TT> literal save format. Because
+you are likely to use XParam both to write it and read it, you will probably
+never need to know how, exactly, it is saved, but here it is, nevertheless,
+for completion:
+<itemize>
+<item>6 bytes of a constant header: "raw&lt;&lt;&lt;"</item>
+<item>4 bytes of size in bytes (signed, big-endian).</item>
+<item>A byte-wise dump of the binary data.</item>
+<item>3 bytes of a constant footer: "&gt;&gt;&gt;"</item>
+</itemize>
+Though not human-readable, this format lets you, at least, see where your
+binary data is, as it will always be enclosed inside these visible delimiters:
+"raw&lt;&lt;&lt; ... &gt;&gt;&gt;"
+
+<sect><heading>The Registration Interface<label id="The Registration Interface"></>
+<sect1><heading>General Registration Interface<label id="R-general"></><P>
+The most involved and least frequently required interface to the
+XParam library is the registration interface. In contrast to the
+user's interface, that is required whenever a program using
+XParam is invoked, and the programmer's interface, that should be
+used whenever you write a new program with XParam parameter
+handling, registration is needed only when you want XParam to
+learn how to use new classes, or when the interface to an already
+registered class has changed.
+<P>
+In principle, to handle user inputs such as <TT>a=7</TT>, where <TT>a</TT> is,
+for example, an instance of class <TT>Duck</TT>, XParam should find the
+best path from <TT>7</TT> to a <TT>Duck</TT> variable. If <TT>Duck</TT> has
+a non-explicit constructor from <TT>int</TT>, that can, of course, be used.
+If, instead, it only has a non-explicit constructor from <TT>double</TT>,
+then the <TT>7</TT> integer should be converted to a <TT>double</TT>, and
+from there to <TT>Duck</TT>. If, on the other hand, the only non-explicit
+constructor <TT>Duck</TT> has is from <TT>char</TT>, then the
+<TT>7</TT> should not be taken as an integer value at all, but
+as an abbreviation of <TT>'7'</TT>, using XParam's relaxed
+type matching. This was only a very simple example, but arbitrarily complex
+implicit conversion paths can also be generated by the user.
+Consider, for example, the user's command mentioned in the
+introduction:
+<P><tscreen><code>
+~/bin&gt;a.out 'my_shape=[ Circle(Point(50,50),50), Circle(Point(25,75),10),
+Circle(Point(75,75),10), Arc(Point(25,50), Point(50,25), Point(75,50)) ]'
+</code></tscreen><P>
+To parse this line correctly, XParam needs considerable knowledge of the
+existing classes and the inter-connections between them.
+<P>
+All the information required by XParam exists as part of the classes'
+interface. Unfortunately, because C++ has no reflection capability,
+in the registration process the registrator has to make this
+information explicitly available for XParam's usage. As will shortly
+be demonstrated, the registration process itself is entirely
+non-intrusive, enabling third-party registration. The only restriction
+XParam-registered classes have is that if they are concrete,
+they should support a public copy constructor and be assignable.
+Because of this,
+classes can be developed by one person, entirely unaware of XParam,
+then registered by a second person and finally used by a third person.
+For this to be possible, the class interface, developed by the first
+person, should be available for the registering person, and code
+developed by the registrator and the programmer should be linked
+together (though it can be compiled separately) into the running
+program.
+<P>
+To emphasize this point, consider that in order to run
+the example quoted above, classes <TT>Circle</TT>, <TT>Arc</TT>
+and <TT>Point</TT> weren't necessarily even programmed at the time
+the main program was compiled and even executed. Trying to parse the
+command-line, XParam can dynamically load both the registration code
+and the class implementations at run-time.
+<P>
+<sect1><heading>The Basic Structure<label id="basicstructure"></><P>
+In the next sections, the exact contents of registration files will
+be elaborated, but the basic structure of all registration files is
+exactly the same. First, note that XParam's registration files, as
+was hinted at in the first section, are C++ files. They should be
+compiled as any C++ file and linked with the rest of your program.
+This can be confusing, because registration files don't look like
+they are C++-compilable files. What they do look like, is this:
+<P><tscreen><code>
+#include &lt;xparam_extend.h&gt;
+#include "point.h"
+#include "point_output.h"
+using namespace xParam;
+
+PARAM_BEGIN_REG
+
+  PARAM_CLASS(Point);
+    param_ctor&lt;Point&gt;(ByVal&lt;int&gt;("x"),ByVal&lt;int&gt;("y"));
+    param_output&lt;Point,Point_output_functor&gt;();
+    param_vector&lt;Point&gt;();
+
+PARAM_END_REG
+</code></tscreen><P>
+To understand this format, let's go over it line by line:
+<P><tscreen><code>
+#include &lt;xparam_extend.h&gt;
+</code></tscreen><P>
+This file contains the declarations needed for XParam registration.
+<P><tscreen><code>
+#include "point.h"
+</code></tscreen><P>
+The interface of the registered class should be visible to the
+registration code.
+<P><tscreen><code>
+#include "point_output.h"
+</code></tscreen><P>
+In this particular case, we separated the implementation of
+<TT>Point</TT>'s output to a different file.
+Consult the section about <ref id="creators" name="Creators"> to
+learn about other header files you may want to <TT>#include</TT>
+to your registration code.
+<P><tscreen><code>
+using namespace xParam;
+</code></tscreen><P>
+You don't need this line, of course, but if you don't use it,
+you will have to add the <TT>xParam::</TT> prefix to virtually
+everything in the registration code, so we highly recommend it.
+All our examples of registration code will assume the inclusion
+of this line.
+<P>
+Finally, we reach the registration code itself. It is denoted by
+a <TT>PARAM_BEGIN_REG</TT>/<TT>PARAM_END_REG</TT> block. The
+purpose of this block is to create an environment in which commands
+are executed before <TT>main()</TT> is entered. The two macros set up an
+anonymous namespace and define a class within that namespace,
+and an instance of the class. The commands placed inside a
+<TT>PARAM_BEGIN_REG</TT>/<TT>PARAM_END_REG</TT> block compose
+the class's constructor, and are therefore executed.
+All XParam's registration commands are simple function calls and
+constructors for temporary objects. The
+<TT>PARAM_BEGIN_REG</TT>/<TT>PARAM_END_REG</TT> block allows these
+function calls to be executed and the registration to take effect
+before <TT>main()</TT> is reached.
+<P>
+You can, of course, run the registration commands by other means,
+but it is our opinion that this is the simplest and most
+straightforward way.
+<P>
+One <TT>PARAM_BEGIN_REG</TT>/<TT>PARAM_END_REG</TT> pair is good
+to put all your registration commands
+in, but if you want you can separate your registration commands
+into as many blocks as you want. This can be effective if you
+want to put ordinary C++ code in your registration files. The
+<TT>Point_output_functor</TT>, for example, could have been written
+directly in the <TT>Point</TT> registration file, and splitting
+the file into several registration blocks can help you place the
+output functor near the registration command relevant to it.
+<P>
+An XParam program can link in as many registration files as it
+wishes, and as many classes as you wish can be registered in the
+same registration block.
+<P>
+Ordinary C++ code should not be placed inside a registration
+block, unless you want it to run prior to your <TT>main()</TT>.
+<P>
+In the next section we will go over all the registration
+commands supplied by XParam for use in registration blocks.
+<P>
+Note: it is not an error to repeat a registration call more than once, as
+long as the repetitions are exact duplicates. XParam will recognize the
+repetition and will ignore all but the first registration call.
+<sect1><heading>Class Declarations<label id="classdeclarations"></><P>
+The usual way to declare a class for XParam's use is
+<P><tscreen><code>
+PARAM_CLASS(my_class);
+</code></tscreen><P>
+<TT>PARAM_CLASS</TT> is a macro. If you rather not use this
+macro, you can always opt for the longer form:
+<P><tscreen><code>
+param_class&lt;my_class&gt;("my_class");
+</code></tscreen><P>
+which is what the previous line expands to. This format is
+usually not used, unless you want your class to be given a
+different name in its XParam user interface than it does in
+C++. Though this may seem like a strange idea at first, take
+into account that fully qualified class names are used much
+more frequently in XParam than they are in C++ code, so it
+is convenient to use a shorter form here. Here is one
+example of such a usage, in XParam's own <TT>cpp</TT> files:
+<P><tscreen><code>
+param_class&lt;std::string&gt;("string");
+</code></tscreen><P>
+The STL string, known inside C++ programs as <TT>std::string</TT>, and
+sometimes even as <TT>std::basic_string&lt;char, std::char_traits&lt;char&gt;,
+std::allocator&lt;char&gt; &gt;</TT> would have been cumbersome to
+use under that name. Therefore, the XParam name it has been
+given is simply <TT>string</TT>. XParam would have been able to
+handle this fully qualified name. However, no XParam class name can
+include a modifier, such as "unsigned", "long", "const", "static" or
+"volatile". (See the exception to this rule, later on in this section.)
+<P>
+One other reason not to use the macro is when your class-name has
+a comma in it, such as "Position&lt;int,int&gt;". If you try to use the
+PARAM_CLASS macro with this name, it will complain that the macro
+was invoked with too many parameters, because the macro can not
+correctly parse this expression. In such a case, use non-macro
+registration.
+<P>
+Because XParam tries to instantiate its classes, abstract classes can
+not be registered in this way. They use
+<P><tscreen><code>
+PARAM_ABSTRACT_CLASS(my_abstract_class);
+</code></tscreen><P>
+which is a macro that expands to
+<P><tscreen><code>
+param_abstract_class&lt;my_abstract_class&gt;("my_abstract_class");
+</code></tscreen><P>
+Registering abstract classes is useful for using polymorphism, where
+inheritance relationships are necessary.
+<P>
+The following types have been pre-registered by XParam. The name in
+parentheses indicates the XParam-name of the class, if it differs from
+the C++ name.
+<itemize>
+<item>bool</item>
+<item>char</item>
+<item>double</item>
+<item>float</item>
+<item>int</item>
+<item>long</item>
+<item>short</item>
+<item>std::string (string)</item>
+<item>unsigned char (uchar)</item>
+<item>unsigned int (uint)</item>
+<item>unsigned long (ulong)</item>
+<item>unsigned short (ushort)</item>
+</itemize>
+In addition, for platforms which support these, XParam also provides
+<itemize>
+<item>long long (longlong)</item>
+<item>unsigned long long (ulonglong)</item>
+<item>long double (long_double)</item>
+</itemize>
+<P>
+Though you can register any
+template specialization you want, not every template specialization
+is a legal XParam name. Currently, XParam can only
+handle template specializations which expect class names as their
+specialization parameters. That is: <TT>Matrix&lt;int&gt;</TT> is
+allowed, but <TT>Matrix&lt;3,4&gt;</TT> isn't. If you want to use class
+<TT>Matrix&lt;3,4&gt;</TT>, you can, but not under that name. Here is
+one possible workaround:
+<P><tscreen><code>
+param_class&lt;Matrix&lt;3,4&gt; &gt;("Matrix&lt;THREE,FOUR&gt;");
+</code></tscreen><P>
+There are two exceptions to the "no modifiers are allowed in class names"
+rule: when registering a template specialization, classes that are
+part of the specialization description can include the modifier "const"
+and a "*" if they are pointer types,
+but no other modifier. For example: <TT>vector&lt;const string*&gt;</TT>
+is a legal XParam class name, and one can therefore register it
+directly using the registration macro:
+<P><tscreen><code>
+PARAM_CLASS(vector&lt;const string*&gt;);
+</code></tscreen><P>
+<sect1><heading>Inheritance<label id="inheritance"></><P>
+In addition to the registration of the existance of your classes,
+XParam allows you to register other properties. Here is the
+syntax to register an inheritance relationship between two classes:
+<P><tscreen><code>
+param_inheritance(DerivedTag&lt;my_derived_class&gt;(), BaseTag&lt;my_base_class&gt;());
+</code></tscreen><P>
+The syntax includes <TT>DerivedTag</TT> and <TT>BaseTag</TT> so
+as to minimize the possibility of confusion in the registration
+order.
+<P>
+Just as in C++, if A derives from B and B derives from C, then
+A derives from C. You do not need to register the A-from-C
+relationship explicitly.
+<P>
+Note: The entire registration process is meant to register class
+interfaces. If your class has private or protected inheritance from
+a base class, this is naturally not a part of the class interface,
+and you should therefore not register it. Another very important
+detail to note about registering inheritances is that all classes
+involved in an XParam inheritance relationship must have at least
+one virtual method (even if it is the destructor). This makes C++
+create a virtual method pointer table for the class, enables
+real-time type information for the class, allows use of
+<TT>dynamic_cast</TT>s, and, in general, allows XParam to make
+proper use of the inheritance information.
+
+<sect1><heading>Constant Variables<label id="R-constants"></><P>
+Defining a constant, so that it will be recognized in XParam
+initializations, is very simple. The registration command is:
+<P><tscreen><code>
+param_const(name,value);
+</code></tscreen><P>
+where <IT>name</IT> is a string, and <IT>value</IT> can be a C++
+variable of any type which has been registered into XParam.
+XParam does not insist that your variable will be defined as
+'const'. However, the value that this variable had at
+registration time is the value that XParam will use.
+<P>
+The constant will be of the same type as that of the C++ variable.
+In XParam initializations, the constant will be recognized by the
+name given in <IT>name</IT>.
+<P>
+Usually, the name you will want to give your constant is the same
+as the name you reference it in your C++ programs. To accomplish
+this, XParam defines an easy interface using the PARAM_CONST
+macro.
+<P><tscreen><code>
+PARAM_CONST(variable);
+</code></tscreen><P>
+expands to
+<P><tscreen><code>
+param_const("variable",variable);
+</code></tscreen><P>
+Note: It is not recommended to use dynamically loaded constants.
+Though XParam does support loading constants dynamically, using
+a constant in a parameter initialization will not trigger dynamic
+loading. XParam will only recognize the constant if it had
+already been loaded due to a missing class that had to be
+dynamically loaded. For this reason, it is safest to have all your
+constants statically linked to your program.
+<!--
+Starting version 1.21 of XParam, constants can have scope qualifications,
+so the name "std::numeric_limits&lt;double&gt;::quiet_NaN" is a legal name
+for an XParam constant.
+-->
+<P>
+<sect1><heading>Enumerators<label id="enumerators"></><P>
+Enumerators are handled in a very similar way to constants.
+First, you need to register your enum type. This is done by the
+macro
+<P><tscreen><code>
+PARAM_ENUM(enum_type);
+</code></tscreen><P>
+or, alternatively, by an explicit call to the registration function
+it expands to:
+<P><tscreen><code>
+param_enum&lt;enum_type&gt;("enum_type_name_in_XParam");
+</code></tscreen><P>
+or, for an ISO-challanged compiler:
+<P><tscreen><code>
+param_enum(TypeTag&lt;enum_type&gt;(),"enum_type_name_in_XParam");
+</code></tscreen><P>
+The macro naturally assumes that you want to set the name of the enum_type
+in XParam to be exactly what it is in C++.
+<P>
+To define a certain instance of your enum, all you have to do is use the
+macro
+<P><tscreen><code>
+PARAM_ENUM_VAL(value);
+</code></tscreen><P>
+or the function it expands to:
+<P><tscreen><code>
+param_enum_val("value_name_in_XParam", value);
+</code></tscreen><P>
+where the value's name in C++ and the value's name in XParam are assumed
+to be the same.
+<P>
+If this sounds complex, here is an example that will make it clearer:
+<P><tscreen><code>
+enum DOW { Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday };
+
+PARAM_BEGIN_REG
+  PARAM_ENUM(DOW);
+  PARAM_ENUM_VAL(Monday);
+  PARAM_ENUM_VAL(Tuesday);
+  PARAM_ENUM_VAL(Wednesday);
+  PARAM_ENUM_VAL(Thursday);
+  PARAM_ENUM_VAL(Friday);
+  PARAM_ENUM_VAL(Saturday);
+  PARAM_ENUM_VAL(Sunday);
+PARAM_END_REG
+</code></tscreen><P>
+That's all there is to it! The enumerator is now ready to be read from the
+input as if it were a regular constant. Note, however, that there is a
+difference between constants and enums in the way they are output: constants
+are output by their values, so if the programmer was to write
+"cout &lt;&lt; Val(M_PI)", she can expect to get "3.1415" on the output line.
+Enums, on the other hand, are output by name. Writing "cout &lt;&lt; Wednesday",
+will result in "Wednesday" being output, so that re-reading
+the enum elsewhere will still give the value of Wednesday, even if the enum
+is defined by a different integer there.
+<P>
+An exception to this rule are enums that were not declared by the registrator.
+If, in the registration process, you registered "PARAM_ENUM(DOW);", but did
+not continue to register its instances -- something we wholeheartedly
+discourage -- then anyone who tries writing "cout &lt;&lt; Wednesday" will get
+"DOW(2)" in the output. Though this still works, and can even be read back
+using XParam (assuming Wednesday is still represented by the number 2 in the DOW
+list of the reading program) it is much less clear to a human reader, and
+may be less portable. For this reason, it is always advisable to register
+all your enum values.
+<!--
+Starting version 1.21 of XParam, enums can have scope qualifications,
+so the name "std::ios&lt;char&gt;::cur" is a legal name
+for an XParam enumerator.
+-->
+<P>
+<sect1><heading>Argument Passers<label id="argumentpassers"></><P>
+Most of the registration code is composed of registration of
+constructors. This, in general, looks something like this:
+<P><tscreen><code>
+param_ctor&lt;Point&gt;(ByVal&lt;int&gt;("x"),ByVal&lt;int&gt;("y"));
+</code></tscreen><P>
+This particular line means: class <TT>Point</TT> has a
+constructor from two integers, x and y, both passed by value.
+As you can see, a major part of the description is composed
+of argument passers: <TT>ByVal&lt;int&gt;("x")</TT> is the
+XParam way of saying "an argument called <TT>x</TT>, of type
+<TT>int</TT>, which is passed by value". In this section
+we will go over the various argument passers supplied by
+XParam and how to use them.
+<P>
+In XParam, arguments can be passed by value, by
+constant reference or by pointer. If it is
+passed by pointer, an argument can be constant or
+non-constant, and the responsibility to delete it after
+the end of the construction call can lie either with the
+caller, or with the called constructor. This gives four
+different types of pointers. In addition to this, there
+are two more argument passers: AsConvertedVal and
+AsCString. These will be explained later on.
+<P>
+An XParam argument, with the exception of AsConvertedVal and
+AsCString, takes the following form:
+<P><tscreen><code>
+passmode&lt;type&gt;("argname")
+</code></tscreen><P>
+for example:
+<P><tscreen><code>
+ByVal&lt;int&gt;("width")
+</code></tscreen><P>
+This means: the argument's name is <TT>width</TT>,
+its type is <TT>int</TT> and it should be passed
+by value. The argument's name is currently only used for
+error reporting and getting help, but may become more functional
+in future XParam versions.
+<P>
+Instead of <TT>ByVal</TT>, you can put <TT>ConstRef</TT>
+to indicate an argument passed by constant reference,
+<TT>ClassPtr</TT> and <TT>CallerPtr</TT> to indicate a
+pointer that is owned by the method it was passed to
+or one that is owned by the caller and should be deleted by
+XParam, respectively, and <TT>ClassConstPtr</TT> and
+<TT>CallerConstPtr</TT>, which are the constant
+pointer equivalents of <TT>ClassPtr</TT> and <TT>CallerPtr</TT>.
+<P>
+XParam pointers are all allocated by <TT>new</TT>, so
+<TT>ClassPtr</TT> and <TT>ClassConstPtr</TT> should be
+deallocated by using <TT>delete</TT> in the called
+method.
+<P>
+One special case is a constructor expecting a C-string
+(i.e. a null-terminated array of <TT>char</TT>s). XParam handles
+strings in a very different way than C++ does. C++ considers
+an explicit string literal to be of type C-string. Type C-string
+is equivalent to an array of <TT>char</TT>s, and different than an
+<TT>std::string</TT>. In XParam, an explicit string literal is considered
+to be of type <TT>std::string</TT>. For this reason, if class
+<TT>Duck</TT> has a constructor from an <TT>std::string</TT>,
+and <TT>my_duck</TT> is an instance of <TT>Duck</TT>, then
+<P><tscreen><code>
+my_duck="abc"
+</code></tscreen><P>
+is a legal XParam initialization. In C++, this would have required
+two implicit user-defined casts: one from C-string to <TT>std::string</TT>,
+the other from <TT>std::string</TT> to <TT>Duck</TT>.
+<P>
+On the other hand, unlike C++, XParam considers the types
+<TT>std::string</TT>, C-string and [<TT>const</TT>] <TT>char*</TT>
+to be completely unrelated
+types. In previous examples, we have shown how to pass, in XParam,
+arguments of any class type (using <TT>ByVal</TT> and <TT>ConstRef</TT>)
+as well as any pointer type. In this way, it is possible to pass either
+an <TT>std::string</TT> or a [<TT>const</TT>] pointer to a <TT>char</TT>.
+However, these will not do if you want your constructor to accept
+a C-string parameter. To do this, write
+<P><tscreen><code>
+AsCString("argname")
+</code></tscreen><P>
+Finally, if you need, for some reason, to allow an
+implicit conversion at pass-time, and your compiler
+warns you about this, you can use
+<P><tscreen><code>
+AsConvertedVal&lt;sourcetype,destinationtype&gt;("argname");
+</code></tscreen><P>
+This should hardly ever be needed. However, XParam's
+pre-registered types use this, because implicit
+conversions between almost all built-in C types are
+allowed by the language.
+<sect1><heading>Constructors<label id="constructors"></><P>
+Now that we've gone over argument passing, here's
+the syntax to register constructors:
+<P><tscreen><code>
+param_ctor&lt;registered_type&gt;( .. list of argument passers ... );
+</code></tscreen><P>
+The list of argument passers can contain between
+zero and thirteen arguments (XParam does not support
+methods with more than thirteen arguments, by default.
+This can be changed. See the
+<ref id="Installing XParam" name="Installing XParam"> section for details).
+The arguments should have the format described in
+the previous section. Arguments in the list should
+be separated by commas.
+<P>
+For example:
+<P>
+<TT>param_ctor&lt;Complex&gt;();</TT> is the default Complex constructor.
+<TT>param_ctor&lt;Complex&gt;(ByVal&lt;double&gt;("real"));</TT>
+is the double-to-Complex implicit conversion constructor.
+<TT>param_ctor&lt;Complex&gt;(ByVal&lt;double&gt;("real"),
+ByVal&lt;double&gt;("imaginary"));</TT> is the
+Complex-from-two-doubles constructor.
+<P>
+Unfortunately, though this is ISO-C++, many compilers
+still balk at this syntax. For this reason,
+XParam is also willing to accept the following format
+for registering constructors:
+<P><tscreen><code>
+param_ctor(TypeTag&lt;registered_type&gt;(), ... arglist ... );
+</code></tscreen><P>
+In XParam, as in C++, constructors can also be declared
+"explicit", to prevent their usage in implicit conversion
+paths. To register this, use the single-argument
+constructor, in either flavor, switching <TT>param_ctor</TT>
+with <TT>param_explicit_ctor</TT>. So, if we do not
+wish the Complex-from-double constructor to be allowed
+implicitly, all we need is to register it as
+<P><tscreen><code>
+param_explicit_ctor&lt;Complex&gt;(ByVal&lt;double&gt;("real"));
+</code></tscreen><P>
+or
+<P><tscreen><code>
+param_explicit_ctor(TypeTag&lt;Complex&gt;(), ByVal&lt;double&gt;("real"));
+</code></tscreen><P>
+Because XParam requires that all concrete classes have copy
+constructors, this constructor is registered automatically
+when you use "param_class" to register a concrete class.
+<sect1><heading>Creators<label id="creators"></><P>
+Not always is everything handed to us on a silver platter.
+One of the many surprises life can have in store for you
+is that the class you wish to register does not support
+the interface you need.
+<P>
+How can that be? you ask. Well, many classes don't allow
+themselves to be set up completely at construction-time.
+You build them up in a certain way, and then need a little
+more tweaking to get it exactly right. Consider, for example,
+the <TT>std::vector</TT>. If you want a vector of integers to be
+filled with the numbers one through five, in C++, this is the
+way to do it:
+<P><tscreen><code>
+std::vector&lt;int&gt; v;
+v.push_back(1);
+v.push_back(2);
+v.push_back(3);
+v.push_back(4);
+v.push_back(5);
+</code></tscreen><P>
+In XParam, however, you want to do everything on a single
+construction line. The person who wrote the C++ interface
+could have omitted the possibility for complete construction
+on a single line because she didn't think it too important,
+or because (as in the case of <TT>std::vector</TT>) the appropriate
+constructor isn't possible to program in C++. Either way,
+XParam may have a solution for you.
+<P>
+What you need to do is to program a creator. A creator is
+a functor class supporting the following interface:
+<P><tscreen><code>
+class creator_name {
+  public:
+    static created_class_name* create( ... arglist ... );
+};
+</code></tscreen><P>
+where <TT>arglist</TT> is the list of arguments you want
+to send to the creator functor. It is composed of normal
+C++ arguments, not XParam argument passers.
+<P>
+Here's an example: a friend of mine programmed the following struct:
+<P><tscreen><code>
+struct Point {
+  int x,y;
+};
+</code></tscreen><P>
+In C++, using this struct is no problem: you take a "Point" variable
+and assign whatever value you want to it. However, in XParam you want
+the initialization to be done right on the object definition line.
+You therefore want to register the following creation functor:
+<P><tscreen><code>
+class Point_creator {
+  public:
+    static Point* create(const int _x, const int _y) {
+      Point* rc=new Point;
+      rc->x=_x;
+      rc->y=_y;
+      return rc;
+    }
+};
+</code></tscreen><P>
+Make sure that in your creator the pointer to your created type is
+allocated using <TT>new</TT>.
+<P>
+Once the functor is set up, all you need to do is to register it:
+<P><tscreen><code>
+param_creator&lt;Point,Point_creator&gt;(ByVal&lt;int&gt;("_x"),ByVal&lt;int&gt;("_y"));
+</code></tscreen><P>
+or, for an ISO-challenged compiler:
+<P><tscreen><code>
+param_creator(TypeTag&lt;Point&gt;(),TypeTag&lt;Point_creator&gt;(),ByVal&lt;int&gt;("_x"),ByVal&lt;int&gt;("_y"));
+</code></tscreen><P>
+This example was perhaps a little contrived, but was given here
+for simplicity. Here is a real life usage:
+<P>
+Starting with version 1.2 of XParam, <TT>std::map</TT>s and
+<TT>std::pair</TT>s have very
+simple-to-use functions for registering them. However, people wanting to
+register the <TT>std::map&lt;std::string,int&gt;</TT> prior to version 1.2
+would have had to work a little harder to do so, because all registration
+calls would have had to be done manually. Here is how to register the
+creator of such a map from an explicit listing of its contents in the form
+<TT>std::vector&lt;std::pair&lt;std::string,int&gt; &gt;</TT>.
+What we need to do is to program the following class:
+<P><tscreen><code>
+class map_creator {
+  public:
+    static std::map&lt;std::string,int&gt;*
+     create(const std::vector&lt;std::pair&lt;std::string,int&gt; &gt;&amp; v);
+};
+</code></tscreen><P>
+with the method implementation being, for example, this:
+<P><tscreen><code>
+using namespace std;
+
+static map&lt;string,int&gt;*
+map_creator::create(const vector&lt;pair&lt;string,int&gt; &gt;&amp; v) {
+      typedef map&lt;string,int&gt; maptype;
+      typedef vector&lt;pair&lt;string,int&gt; &gt; vectype;
+
+      maptype* rc=new maptype();
+      for(vectype::const_iterator i=v.begin();i!=v.end();++i) {
+        (*rc)[i-&gt;first]=i-&gt;second;
+      }
+      return rc;
+}
+</code></tscreen><P>
+Armed with this, all you need is the following registration
+command (assuming the rest of map, vector and pair have already
+been registered):
+<P><tscreen><code>
+using namespace std;
+param_creator&lt;map&lt;string,int&gt;,map_creator&gt(ConstRef&lt;vector&lt;pair&lt;string,int&gt; &gt; &gt;("v"));
+</code></tscreen><P>
+Or, for an ISO challenged compiler:
+<P><tscreen><code>
+using namespace std;
+param_creator(TypeTag&lt;map&lt;string,int&gt; &gt;(),TypeTag&lt;map_creator&gt;(),ConstRef&lt;vector&lt;pair&lt;string,int&gt; &gt; &gt;("v"));
+</code></tscreen><P>
+As constructors, XParam creators, too, can be declared to be
+"explicit". This is done by switching <TT>param_creator</TT>
+with <TT>param_explicit_creator</TT>
+<P>
+In general, the syntax for creator registration is the following:
+<P><tscreen><code>
+param_creator&lt;my_class,my_class_creator&gt;(... arglist ...);
+</code></tscreen><P>
+or
+<P><tscreen><code>
+param_creator(TypeTag&lt;my_class&gt;(),TypeTag&lt;my_class_creator&gt;(),... arglist ...);
+</code></tscreen><P>
+or
+<P><tscreen><code>
+param_explicit_creator&lt;my_class,my_class_creator&gt;(arg);
+</code></tscreen><P>
+or
+<P><tscreen><code>
+param_explicit_creator(TypeTag&lt;my_class&gt;(),TypeTag&lt;my_class_creator&gt;(),arg);
+</code></tscreen><P>
+The <TT><IT>arg</IT></TT> and <TT><IT>arglist</IT></TT>, of course, are the XParam
+argument-passers list that matches the argument list
+given in the functor.
+<P>
+When registering a creator, an output function, or any other
+functional object, in XParam, the registered class, or at least
+its interface, must be visible to the registration code.
+For this reason, if you separate the functors from the registration
+code, you will want to <TT>#include</TT> their header files in
+the registration file.
+<P>
+In <ref id="The Programmer Interface" name="The Programmer Interface">
+section, we mentioned the fact that, unlike in C++, XParam
+does not allow you to register two constructors for ClassA,
+one from a pointer to ClassB, the other from a constant
+reference to ClassB. This is because XParam uses the
+same syntax to signify both. If you encounter this problem,
+or any other reason why XParam does not allow you to register
+the constructors that you want to use, you may want to use
+creators as a workaround. Consider, for example, this
+creator functional object:
+<P><tscreen><code>
+class workaround {
+  public:
+    static ClassA* create(const ClassB* const b, const Dummy&amp;) {
+      return new ClassA(b);
+    }
+};
+</code></tscreen><P>
+If you register it, you will be able to use the
+Class-A-from-ClassB-pointer constructor by invoking this
+creator, which receives an extra "Dummy" parameter.
+If you already have the ClassA-from-const-ClassB-reference constructor
+and class "Dummy" registered, this workaround allows you to
+use the user syntax <TT>a=ClassB(...)</TT> to signify the
+construction of ClassA from a ClassB const reference (assuming
+<TT>a</TT> is a paramter of type ClassA), and to use
+<TT>a=ClassA(ClassB(...),Dummy())</TT> to signify a
+ClassA-from-ClassB-pointer construction. Such workarounds
+are hardly ever needed, but it is useful to know they can
+be used in the unlikely case you're going to need them.
+<P>
+Note: there is a more elegant way of working around this problem,
+and it doesn't utilize creators at all. Programming in C++,
+you may sometimes find yourself adding a dummy class to your
+program in order to solve an ambiguity. For example, you may
+want to add the class "Length" to your program, simply to
+differentiate between <TT>Vector(7)</TT> and <TT>Vector(Length(7))</TT>.
+The same solution works in XParam: program and register class
+WorkaroundPtr that has an explicit constructor from a
+"const ClassB* const" and a conversion operator to a "ClassA".
+Using it, you'll be able to differentiate between
+<P><tscreen><code>
+a=ClassA(ClassB(...))
+</code></tscreen><P>
+indicating a construction from a "ClassB" constant reference, and
+<P><tscreen><code>
+a=ClassA(WorkaroundPtr(ClassB(...))
+</code></tscreen><P>
+indicating a construction from a "ClassB*" pointer.
+<sect1><heading>Conversion Functions<label id="R-conversions"></><P>
+In C++, one can define a conversion either in the form of a
+conversion constructor, or in the form of a conversion
+operator. Both because these have slightly different
+behaviors, and because we wanted to keep the conceptual
+difference that the C++ language makes, XParam also
+allows the registration of conversion operators. These
+have the following format:
+<P><tscreen><code>
+param_conversion_operator(SourceTag&lt;source_type&gt;(),TargetTag&lt;target_type&gt;());
+</code></tscreen><P>
+<sect1><heading>Vectors, Lists, Sets, Maps and Pairs<label id="vectors"></><P>
+It is impossible, in XParam, to register templates directly.
+However, it is possible to register template instantiations.
+So, for
+example, one can not register the template <TT>std::vector</TT>,
+but one can register any of its specializations, such as
+<TT>std::vector&lt;int&gt;</TT> and <TT>std::vector&lt;Duck&gt;</TT>.
+<P>
+For some of the basic STL templates, XParam provides registration
+commands that allow you to register an instantiation in a single
+command. These commands are not much more than functions that
+run all the relevant registration commands. The STL templates
+for which XParam provides this functionality are:
+<itemize>
+<item>std::vector&lt;<IT>T</IT>&gt; (vector&lt;<IT>T</IT>&gt;)</item>
+<item>std::list&lt;<IT>T</IT>&gt; (list&lt;<IT>T</IT>&gt;)</item>
+<item>std::set&lt;<IT>T</IT>&gt; (set&lt;<IT>T</IT>&gt;)</item>
+<item>std::map&lt;<IT>KeyType</IT>,<IT>ValueType</IT>&gt;
+(map&lt;<IT>KeyType</IT>,<IT>ValueType</IT>&gt;)</item>
+<item>std::pair&lt;<IT>FirstType</IT>,<IT>SecondType</IT>&gt;
+(pair&lt;<IT>FirstType</IT>,<IT>SecondType</IT>&gt;)
+</item>
+</itemize>
+where the names in parentheses are the XParam names given to these C++
+types, in which the "std::" prefix has been omitted for convenience.
+<P>
+The command to register an <TT>std::vector</TT> over a type <TT><IT>T</IT></TT>
+is:
+<P><tscreen><code>
+param_vector&lt;T&gt;();
+</code></tscreen><P>
+Registering <TT>std::vector&lt;<IT>T</IT>*&gt;</TT> and
+<TT>std::vector&lt;const <IT>T</IT>*&gt;</TT> is done by these two commands,
+respectively:
+<P><tscreen><code>
+param_ptr_vector&lt;T&gt;();
+</code></tscreen><P>
+and
+<P><tscreen><code>
+param_const_ptr_vector&lt;T&gt;();
+</code></tscreen><P>
+Registration commands for <TT>std::list</TT> are analogous to those
+provided for <TT>std::vector</TT>. They are:
+<P><tscreen><code>
+param_list&lt;my_class&gt;();
+param_ptr_list&lt;my_class&gt;();
+param_const_ptr_list&lt;my_class&gt;();
+</code></tscreen><P>
+Registration of <TT>std::map</TT> is done using the following
+commands:
+<P><tscreen><code>
+param_map&lt;KeyType,ValueType&gt;();
+param_ptr_map&lt;KeyType,ValueType&gt;();
+param_const_ptr_map&lt;KeyType,ValueType&gt;();
+</code></tscreen><P>
+which register the classes
+<TT>std::map&lt;<IT>KeyType</IT>,<IT>ValueType</IT>&gt;</TT>,
+<TT>std::map&lt;<IT>KeyType</IT>,<IT>ValueType</IT>*&gt;</TT>,
+and <TT>std::map&lt;<IT>KeyType</IT>,const <IT>ValueType</IT>*&gt;</TT>
+respectively.
+<P>
+For <TT>std::set</TT> use the command
+<P><tscreen><code>
+param_set&lt;my_class&gt;();
+</code></tscreen><P>
+Finally, registration of <TT>std::pair</TT> has the following syntax:
+<P><tscreen><code>
+param_pair&lt;FirstType,SecondType&gt;();
+</code></tscreen><P>
+All the registration commands mentioned in this section assume that the
+types over which the templates are built (e.g. the scalar type of the
+<TT>std::vector</TT>) have been registered elsewhere in the program.
+They do not attempt to register them on their own.
+<P>
+Note: XParam pre-registers the <TT>std::vector&lt;<IT>T</IT>&gt;</TT> for
+all built-in types as well as for the <TT>std::string</TT>.
+<sect1><heading>Output<label id="output"></><P>
+All the sections, so far, have dealt with input, i.e.
+with the question of how user-input, whether from the
+command-line, from file or piped-in from another program,
+should be parsed and made into real, live, working
+objects. This section is different, because here you
+specify how you want XParam classes to serialize
+themselves back to a streamable output form, so that
+you can save them in a file, print them or e-mail
+them to your congress member.
+<P>
+The XParam output registration command is very simple:
+<P><tscreen><code>
+param_output&lt;my_class, my_class_output_functor&gt;();
+</code></tscreen><P>
+It is very similar to the registration of creators, but
+differs in the fact that there is no argument list, and
+that there is no need for a variation with <TT>TypeTag</TT>s.
+Any modern C++ compiler should be able to handle this
+form. (This is because it doesn't use explicit template
+function arguments. It is simply a constructor call.)
+<P>
+This command registers an output functor for your class.
+However, you still need to supply the functor itself. To
+understand what this functor is and what it does better,
+recall that XParam outputs its variables in such a way
+that they are readable by XParam, in case you want to
+read them again from a different program or in a different
+time. So, XParam must be able to output a <TT>Triangle</TT>,
+for example, in the following format:
+<P><tscreen><code>
+Triangle(Point(5,6),Point(7,8),Point(10,1))
+</code></tscreen><P>
+Naturally, this calls for a recursive approach. The output
+functor of class <TT>Triangle</TT> should tell XParam which
+three points should be output in order to describe this
+triangle, at which point XParam will recursively have to
+find out how to output a Point and finally how to output
+an integer. Neither of the latter two should be supplied
+by the <TT>Triangle</TT> class. It only needs to tell
+XParam which three <TT>Point</TT> objects compose it.
+Here's how this is done:
+<P><tscreen><code>
+class Triangle_output_functor {
+  public:
+    static ValueList sub_objects(const Triangle&amp; t) {
+      ValueList vl;
+      return vl &lt;&lt; Val(t.p1) &lt;&lt; Val(t.p2) &lt;&lt; Val(t.p3);
+    }
+};
+</code></tscreen><P>
+The interface of the output functor is always the same:
+it must support a public static method called <TT>sub_objects</TT>
+that receives a constant reference to the output variable
+and returns a variable of type <TT>ValueList</TT>. The
+way to fill this <TT>ValueList</TT> with the correct
+information is to construct it with a default constructor,
+and then to use
+<P><tscreen><code>
+ValueList&amp; operator&lt;&lt;(ValueList&amp;,const Handle&lt;ValueSource&gt;&amp;);
+</code></tscreen><P>
+to append to it the sub-objects that compose the object to
+be printed.
+<P>
+After you register an output functor, it's a good idea to
+go back and check that you really do have a constructor
+that matches the output function, so that variables that have
+been serialized and then deserialized will return exactly to
+their original state. It can be very confusing if they
+don't.
+<P>
+We recommend supplying output capability to all classes you
+register. This will make the debugging process much more
+painless for both you and the programmer, and will make class
+usage much more convenient to the user (because class output
+is used in much of XParam's help-giving and error-handling
+mechanisms). If you don't, any
+attempt to serialize the class and output it will result in
+<P><tscreen><code>
+classname(NO OUTPUT FUNCTION)
+</code></tscreen><P>
+Which is not readable as input to another program using XParam
+parameter handling.
+<sect1><heading>HVL, TypedValueMap and RawBytes<label id="hvl"></><P>
+<ref id="The User Interface" name="The User Interface"> part of this manual describes
+special syntax available for the initialization of vectors, lists, sets and
+maps. It allows the user
+of these classes to explicitly list their contents on a single initialization
+line, something that is impossible in C++.
+<P>
+This is not really a special property of lists, vectors, sets and maps. You can
+make your classes behave this way, too, if you want your classes to be
+able to be initialized with a non-predetermined number of parameters.
+What happens behind the scenes is
+that each of these special interfaces is handled by a class (or rather, a
+class template) that XParam is familiar with. The syntax
+<P><tscreen><code>
+[ element, element, element ]
+</code></tscreen><P>
+actually initializes a variable of type <TT>xParam::HVL&lt;T&gt;</TT>, where
+T is the type of the element values. ("HVL" stands for "Homogenous Value
+List".) We simply provide <TT>std::list</TT>
+and <TT>std::vector</TT> a creator from this type. You can program such
+a creator for your classes as well. Similarly, <TT>std::vector</TT>,
+<TT>std::set</TT> and
+<TT>std::list</TT>, when output, create an <TT>HVL</TT> that holds their
+data and output it as their single sub-object. This creates the same syntax in
+the output of these types.
+<P>
+The syntax
+<P><tscreen><code>
+{ key1 =&gt; val1, key2 =&gt; val2, key3 =&gt; val3 }
+</code></tscreen><P>
+Works in precisely the same way. It is really the syntax for the template
+class <TT>xParam::TypedValueMap&lt;KeyType,ValueType&gt;</TT>. We provided
+a creator and an output functor for the <TT>std::map</TT>.
+<P>
+Initializing your classes in the same way is not difficult, but it does
+take some understanding of these XParam template classes.
+<P>
+When you're creating your class from an HVL, you can treat it as a
+container, holding pointers of your element type. XParam does not actually
+use pointers -- It uses smart pointers -- but the "-&gt;" and "*" syntax
+will work as usual for you to retrieve your elements. The container itself
+holds all the functionality of an <TT>std::vector</TT>.
+<P>
+When creating an HVL from your class, in order to output your class, use
+the method
+<P><tscreen><code>
+void append_copy(const T* t_ptr);
+</code></tscreen><P>
+This will append a copy of the element pointed to into the HVL.
+<P>
+To clarify, here is a simplified version of the output functor of the
+<TT>std::vector</TT>, as defined in XParam's own code:
+<P><tscreen><code>
+template&lt;class T&gt;
+class VectorOutput {
+public:
+  static ValueList sub_objects(const std::vector&lt;T&gt;&amp; vec) {
+    HVL&lt;T&gt; hvl;
+    typename std::vector&lt;T&gt;::const_iterator i;
+    for(i=vec.begin(); i!=vec.end(); ++i) {
+      hvl.append_copy(i);
+    }
+    ValueList vl;
+    vl &lt;&lt; Val(hvl);
+    return vl;
+  }
+};
+</code></tscreen><P>
+The <TT>TypedValueMap</TT> is very similar to the <TT>HVL</TT>.
+Its version of <TT>append_copy</TT> looks like this:
+<P><tscreen><code>
+void append_copy(const KEY&amp; key, const VALUE* val_ptr);
+</code></tscreen><P>
+When building an object from a TypedValueMap, you can consider it as
+a container holding a struct with two pointers, one called "key",
+and the other called "value". The container holds all the functionality
+of an <TT>std::vector</TT>. Here, too, XParam does not really use
+pointers, but the "-&gt;" and "*" syntax will work as expected.
+<P>
+Note: in XParam internals, the TypedValueMap is, infact, considered to be a
+special case of an HVL. This causes some unexpected behaviors, if you're
+really trying hard to make them happen. In particular, there are rare
+cases where a class expecting a "[ ... ]" will be initializeable by a
+"{ ... }", and there is a way to simulate the "{ ... }" syntax using
+only square brackets. Consider these to be undocumented features and
+their useage hazardous at best. Assume that they will not be supported
+in any future version.
+<P>
+One final note: if all this is too complicated for you, you can always
+resort to initializing your classes from a vector or from a list.
+The disadvantages of this method are:
+<enum>
+<item>The conversion weight associated with converting from the special
+syntax to your class will be higher. If you're not sure what the
+consequences of this are, look at the
+<ref id="Conversion Rules" name="Conversion Rules"> appendix of this manual.</item>
+<item>The performance will be suboptimal when initializing your class,
+because of all the copying taking place. In future versions, we expect the
+initializtion using the HVL/TypedValueMap to become more rigorously
+optimized, and the differences will soar.</item>
+<item>Your class will not look as good in output.</item>
+</enum>
+One last special syntax available in XParam initializations is the
+<P><tscreen><code>
+raw&lt;&lt;&lt; ... &gt;&gt;&gt;
+</code></tscreen><P>
+format. This indicates a binary dump of data, meant for machine-machine
+communication (which is why it isn't considered part of the user interface).
+<P>
+This format translates to a class of type <TT>RawBytes</TT> that can be used
+in your initializations and serializations. A complete overview of
+<TT>RawBytes</TT> is provided in the
+<ref id="rawbytes" name="RawBytes"> section of
+<ref id="The Programmer Interface" name="The Programmer Interface">.
+<sect1><heading>Dynamic Loading<label id="dynamicloading"></><P>
+We have already mentioned that XParam can load classes,
+including their registration information, dynamically.
+<P>
+In order to do this, XParam must have the information of
+what to load when a certain class is needed. This information
+should be supplied in the form of an <TT>XPN</TT> file. An
+<TT>XPN</TT> file is a file with an <TT>xpn</TT> extension
+which contains one or more
+<P><tscreen><code>
+[class1, class2] =&gt; [file1, file2]
+</code></tscreen><P>
+sequences. The particular line in the example states that
+if either <TT>class1</TT> or <TT>class2</TT> is needed,
+<TT>file1</TT> and <TT>file2</TT> should both be dynamically
+loaded. Any amount of white-space can be added in the
+<TT>XPN</TT> files, except in the middle of a class name literal, a
+file name, or the <TT>=&gt;</TT> symbol. If a list of
+classes contains only one class, the brackets around it may
+be omitted. Likewise if the file list contains only a
+single file, the brackets around its name may be omitted.
+<TT>XPN</TT> files may also contain single line comments,
+these being lines beginning with the character '#'.
+<P>
+You may have as many <TT>XPN</TT> files as you want, and
+place them in any directory you want (as long as it is
+accessible to XParam). However, the full list of all
+directories containing <TT>XPN</TT> files should be available
+in the environment variable <TT>XPARAM_CLASSPATH</TT>.
+<P>
+In the <ref id="Usage Examples" name="Usage Examples"> section, a program
+using dynamic loading is demonstrated.
+<P>
+Note: XParam currently does not support dynamic loading under Windows.
+You must link in your classes and their registration commands statically,
+instead.
+<sect1><heading>Checking for Blocked Registration Calls<label id="pending"></><P>
+As you may have noted, certain registration calls require other registration
+calls as prerequisites. When, for example, you register that <TT>class A</TT>
+is a derived type from <TT>class B</TT>, XParam expects both <TT>class A</TT>
+and <TT>class B</TT> to be correctly registered.
+<P>
+In C++, it is impossible to determine in which order the registration
+commands will be processed. To overcome this difficulty, XParam employs a
+technique we call "delayed registration". Essentially, delayed registration
+means that when you ask XParam to register the inheritance relationship, it does
+not automatically do so, but rather defers the registration until such time
+when all of its dependence conditions (e.g. the registration of <TT>class A</TT>
+and the registration of <TT>class B</TT>) will be fulfilled.
+<P>
+For this reason, if you omit the registration call for one of your classes,
+this will cause XParam to defer indefinitely all registration calls pertaining
+to it, and, effectively, this will cause all these registration calls to be
+completely ignored.
+<P>
+Registration commands that have already been enqued, but which are yet to be
+executed because they lack their prerequisites are referred to, in XParam, as
+"pending" registration calls. To make sure that none of your registration
+calls remains pending after all registration commands have been processed
+(which means that some class registration call has been forgotten) use the
+command
+<P><tscreen><code>
+xparam_help("PENDING");
+</code></tscreen><P>
+This will return a string describing all pending registration commands.
+<P>
+This information is also accessible from the command-line. Simply type
+<P><tscreen><code>
+myprog ! PENDING
+</code></tscreen><P>
+to have the same string printed as the program output. The program will halt
+after printing. This interface is useful in debugging your registration calls.
+If everything goes well, at the end of the registration process, the "PENDING"
+directive should return "No registration commands are pending."
+<sect1><heading>Creating Template Registration Commands<label id="extension"></><P>
+As has been mentioned before, it is impossible to directly register
+a template into XParam, but it is possible to register template instantiations.
+In the section
+regarding <ref id="vectors" name="Vectors, Lists, Sets, Maps and Pairs"> we
+have shown several registration commands that allow you, on a single line,
+to register an entire template instantiation. In this section, we will explain
+how you can create registration commands for your own templates, in the same
+way. This is a rather advanced way of using XParam, and we recommend that you
+first gain some practice in manual registration, before attempting this
+automatization.
+<P>
+After reading this section, you may want to refer to the file
+<TT>xpv_reg_pair.h</TT>, which is part of XParam's include files. This file
+implements the registration command <TT>param_pair</TT>. This command
+is fully implemented only using syntax described here and open for your
+usage.
+<P>
+The other registration commands available in XParam which register template
+instantiations (<TT>vector</TT>s, <TT>list</TT>s, <TT>set</TT>s
+and <TT>map</TT>s)
+use a small amount of syntax not yet exported to the XParam registrator. This is
+meant in order to register vectors (etc.) of elements, pointers to elements
+and const pointers to elements all in the same class. It is very simple
+to register all these classes without the benefit of this added syntax.
+The files registering these classes (<TT>xpv_reg_vector.h</TT>,
+<TT>xpv_reg_list.h</TT>, <TT>xpv_reg_set</TT>
+and <TT>xpv_reg_map.h</TT>) can therefore also
+serve as good sources to learn from.
+<P>
+In essence, creating your own registration call for a template instantiation
+involves two steps:
+<enum>
+<item>Implement a <TT>RegCommand</TT> class, such that objects of this class
+can be enqued
+along with the rest of the registration commands, and will be able to perform
+the actual registration when all prerequisites are registered.</item>
+<item>Create a registration interface.</item>
+</enum>
+The first of these two steps involves inheriting from
+<TT>ClassRegCommand&lt;<IT>ClassName</IT>&gt;</TT>, where
+<TT><IT>ClassName</IT></TT> is the name of the class you want to register.
+<P>
+Note: the full name of <TT>ClassRegCommand</TT> is
+<P><tscreen><code>
+template&lt;class T, class ClassKind=ConcreteClassKind&lt;T&gt; &gt; class ClassRegCommand
+</code></tscreen><P>
+If the template you wish to register is a template of abstract classes, instead
+of inheriting from <TT>ClassRegCommand&lt;<IT>ClassName</IT>&gt;</TT>, inherit
+from
+<P><tscreen><code>
+ClassRegCommand&lt;ClassName,AbstractClassKind&lt;ClassName&gt; &gt;
+</code></tscreen><P>
+In inheriting, you must specify which other classes are prerequisites for the
+registration of this class, and will probably want to override the method
+<P><tscreen><code>
+virtual std::string type_name(void) const;
+</code></tscreen><P>
+which should return the XParam name of the class you are registering.
+<P>
+Specifying dependencies is done at the construction of <TT>ClassRegCommand</TT>.
+<TT>ClassRegCommand</TT> can be constructed in one of three ways. The simplest
+way is by
+<P><tscreen><code>
+ClassRegCommand(const std::string&amp; name);
+</code></tscreen><P>
+This constructor is meant for classes which have no dependencies, and
+whose name can be given using an explicit string. Though this is the
+constructor used in the <TT>param_class</TT> registration command, it is
+most likely that you will not be able to make use of it in registering
+templates, because virtually all template classes will need to depend,
+somewhere, on the types that are their template parameters. The <TT>pair</TT>
+class template, for example, depends on its two sub-types for both its
+constructors and its output function.
+<P>
+Note: this is the only constructor available for <TT>ClassRegCommand</TT> where
+the class name is given in the constructor. In all other cases, you will
+need to override the <TT>type_name</TT> method of <TT>ClassRegCommand</TT>.
+<P>
+The second way to construct a ClassRegCommand is
+<P><tscreen><code>
+ClassRegCommand(const std::vector&lt;const std::type_info*&gt;&amp; deps);
+</code></tscreen><P>
+This vector contains the <TT>type_info</TT>s of all classes that your class
+depends on, for its correct registration. Though this is the most generic
+interface to <TT>ClassRegCommand</TT>, you normally don't need more than
+one or two prerequisites for your class. In this case, you can opt for the
+third way to construct a <TT>ClassRegCommand</TT>. The third way is to
+use the <TT>type_info</TT>s of the classes your registration depends on
+directly as the constructor arguments for the <TT>ClassRegCommand</TT>.
+XParam supports this for zero, one and two dependencies. Here is the
+relevant constructor for two depenedencies:
+<P><tscreen><code>
+ClassRegCommand(const std::type_info&amp; dep1, const std::type_info&amp; dep2);
+</code></tscreen><P>
+Now that we have correctly set the dependencies for our new class, it is
+time to give it a name. This is done by overriding the <TT>type_name</TT>
+method of <TT>ClassRegCommand</TT>. Here is the implementation of the
+<TT>type_name</TT> method for pair:
+<P><tscreen><code>
+template&lt;class X, class Y&gt;
+virtual std::string PairRegCommand&lt;X,Y&gt;::type_name(void) const {
+  return "pair&lt;"
+         + xparam_or_cpp_name(typeid(X))
+         + ","
+         + xparam_or_cpp_name(typeid(Y))
+         + "&gt;";
+}
+</code></tscreen><P>
+XParam can not and does not check whether all possible instantiations of your
+registration class will yield legal XParam type names. However, when this
+class is instantiated, the type name it yields is checked, and if it is not
+legal, an error is thrown.
+<P>
+Note, in the <TT>PairRegCommand</TT> implementation, the use of
+<TT>xparam_or_cpp_name</TT>. <TT>xparam_or_cpp_name</TT> is the correct
+way to refer to the names of other classes in the <TT>type_name</TT> method.
+This function normally behaves like <TT>xparam_name</TT>, which is the
+behavior you would normally want and expect when giving names to your
+templates. However, the <TT>type_name</TT> method also has another usage:
+it is used in reporting errors. In error reporting, especially
+when the error occurs during the registration process, it is impossible to
+guarantee that the sub-classes will already be registered.
+<TT>xparam_or_cpp_name</TT> attempts to return the <TT>xparam_name</TT>,
+but if it is not yet registered, it returns the C++
+<TT>type_name</TT>, instead.
+<P>
+Using <TT>xparam_name</TT> in this context is a mistake, because attempting
+to print an error message regarding the template instantiation will trigger
+an attempt to access the information of its subclasses, which may trigger
+dynamic loading, force other registration calls to be executed, and,
+ultimately, cause you not to receive the error message which caused it all.
+<P>
+Once your RegCommand class is correctly defined, it is time for the second
+step of registering a template: define a registration interface appropriate
+for your template.
+<P>
+All of XParam's registration commands are either template functions or
+definitions of an anonymous variable of a template class, where all
+registration commands are enqued in the constructor. The same format can
+be used for your extensions, as well.
+<P>
+<TT>param_pair</TT> for example is a template class. Its constructor calls
+<TT>param_class</TT> to register the new class, <TT>param_ctor</TT> to
+register a constructor for it, and <TT>param_output</TT> to register its
+output function. This is all that is required in order to fully register
+a new instance of the <TT>std::pair</TT> template.
+<P>
+Note, however, that in running the relevant <TT>param_class</TT> registration
+command we don't want to use the simple form
+<P><tscreen><code>
+param_class&lt;ClassName&gt;("ClassNameInXParam");
+</code></tscreen><P>
+Instead, we opt to register our new type's <TT>RegCommand</TT>. This is done
+by a different interface to the same registration command:
+<P><tscreen><code>
+param_class&lt;ClassName&gt;(ClassRegCommand&lt;ClassName&gt;*);
+</code></tscreen><P>
+(<TT>param_abstract_class</TT>, too, has an analogous interface.)
+<P>
+Note that <TT>param_class</TT> receives ownership over this pointer, and it
+is <TT>param_class</TT>'s responsibility to free its memory, when it is done.
+This is done using the <TT>delete</TT> command. You should not access the
+pointer after it has been passed to <TT>param_class</TT>.
+<P>
+One typical way to make sure that the pointer passed to <TT>param_class</TT>
+is not accessed anywhere else in the program is to allocate it while passing
+it to <TT>param_class</TT>. Here's how this is done in the constructor of
+<TT>param_pair&lt;X,Y&gt;</TT>:
+<P><tscreen><code>
+param_class&lt;Pair&gt;(new PairRegCommand&lt;X,Y&gt;());
+</code></tscreen><P>
+
+<sect><heading>Installing XParam<label id="Installing XParam"></>
+<sect1><heading>Installation in Unix<label id="unix"></><P>
+<itemize>
+<item>The XParam source files are available in the file
+<TT>xparam-1.22.tar.gz</TT>.
+Use <TT>tar zxvf xparam-1.22.tar.gz</TT> to uncompress and untar this file to
+where you want it. We will assume you put the XParam files under
+<TT>/usr/local/src/</TT>.</item>
+<item>The XParam files are under four main directories. Under <TT>lib</TT>
+you will find the code for building the library itself.
+Under <TT>examples</TT> you will find
+example programs using XParam. Under <TT>tests</TT> you will find
+regression testing code. Under <TT>doc</TT> you will find the library's
+html documentation, including this file. The tar file only contains sources
+for building the library, example code and regression testing code, and
+does not by itself contain the executables or the linkable library. Building
+XParam, according to the instructions given below, will create these
+executables and library code.</item>
+<item>XParam uses autoconf. Run './configure' from the main directory to
+create the library's Makefile, then run 'make install' from the
+main directory to build the library and install it. (Using 'make' will
+build the library, but will not install it.) 'make check' will run
+regression testing. 'make examples' will compile the example code.
+'make check' and 'make examples' will only work after the library is
+installed.</item>
+<item>Set environment variable XPARAM_CLASSPATH to include all directories
+where you want XParam to search for its '.xpn' files (separated by colons).
+To run the example programs, you will need this path to include
+<TT>/usr/local/src/xparam-1.22/examples/classpath</TT> (or the equivalent
+to reach the <TT>examples/classpath</TT> subdirectory in the distribution, if
+you untarred XParam in a directory other than <TT>/usr/local/src</TT>).</item>
+<item>The standard XParam installation places the file
+<TT>libxparam.so</TT> under <TT>/usr/local/lib</TT>, the XParam header
+files xparam.h and xparam_extend.h under <TT>/usr/local/include</TT>,
+and the rest of XParam's include files (which are never used directly)
+under <TT>/usr/local/include/xparam</TT>. Use the './configure' directive
+'--disable-priv-includes' if you want to install all include files in the
+same directory, or '--enable-priv-includes&lsqb;=path&rsqb;' to install the private
+include files to a relative path other than 'xparam'.</item>
+<item>Use the './configure' directive '--disable-dynamic' if you wish to
+have the dynamic loading feature disabled. This will only affect your
+system if it has dynamic loading support. Otherwise, this feature will
+be automatically disabled.</item>
+<item>If, for some reason, you do not want XParam to be useable until a
+certain point in your program, use --enable-explicit-init. This will cause
+XParam not to work before a call to xparam_init(). Otherwise, XParam
+registrations will all be executed on the first use of XParam in the program.
+This option is particularly useful if you are concerned that someone might
+use XParam before "main()", when you can not be sure that all registrations
+have already been initiated. Typically, xparam_init() will be the first
+line of your "main()".</item>
+<item>XParam's configuration can make use of environment variables such as
+LDFLAGS, CPPFLAGS and CXXFLAGS, in the normal way. However, by default,
+it does not set the -O2 and -g flags in CXXFLAGS, even if your compiler
+supports them. This is because neither speed optimization nor debug
+information is usually important for the XParam user. (After all, this is
+an I/O package.) On the other hand, these flags can slow down compilation
+considerably. To override this default behavior, and have XParam turn on
+the -O2 and -g flags if they are available, use '--enable-cxxflags'
+when running './configure'.</item>
+<item>The examples subdirectory of XParam can be configured separately from
+the rest of the package. It is equipped with its own configure script.
+It can be executed using "examples/configure". By default, configuring
+the package also configures the examples subdirectory, using equivalent
+parameters. If you want to configure the library without configuring its
+examples, use the ./configure option --disable-config-examples.</item>
+<item>Make sure that the directory where you installed the XParam library
+is a trusted directory for loading shared objects. (See "man ldconfig"
+for details.)</item>
+<item>If, while running 'make install', environment variable DESTDIR is set,
+XParam will install to that directory. That is, any file that is meant to
+be installed to the directory /X will, instead, be installed to DESTDIR/X.
+This is useful for checking XParam's installation without actually installing.
+Running 'make check' with DESTDIR still set to the same value will run
+the XParam tests on the copy of the installation based in DESTDIR. Note
+that installing with DESTDIR causes no 'ldconfig' command to be executed.
+(See ldconfig's documentation for details.) If you install to DESTDIR,
+you should subsequently copy all files created in DESTDIR's subdirectory
+to their proper places and run ldconfig to complete the installation.
+This is not necessary when installing directly to the final destination.</item>
+<item>You have now finished the installation of XParam. All
+the usage instructions are in the <TT>doc</TT> library, including how to
+run the programs under <TT>examples</TT> to verify that the installation
+was successful.</item>
+</itemize>
+
+<sect1><heading>Installation in Windows<label id="windows"></><P>
+<itemize>
+<item>The XParam source files are available in the file
+<TT>xparam-1.22.tar.gz</TT>.
+Use WinZip or similar utility to uncompress and untar this file to
+where you want it.</item>
+<item>The XParam files are under four main directories. Under <TT>lib</TT>
+you will find the code for building the library itself.
+Under <TT>examples</TT> you will find
+example programs using XParam. Under <TT>tests</TT> you will find
+regression testing code. Under <TT>doc</TT> you will find the library's
+html documentation, including this file. The tar file only contains sources
+for building the library, example code and regression testing code, and
+does not by itself contain the executables or the linkable library. Building
+XParam, according to the instructions given below, will create these
+executables and library code.</item>
+<item>Load the workspace file <TT>xparam.dsw</TT> (for Visual C++ 6.0).
+It contains all the projects and settings for compiling the XParam library
+and examples with Visual C++ 6.0 - just run the <IT>build</IT> command on your
+selected project.
+When you want to create your own project using XParam, you should make the 
+following project settings:
+<itemize>
+<item>Turn on RTTI (Under the <IT>C/C++</IT> tab, <IT>C++ Language</IT> category)</item>
+<item>Add the include directory for XParam's include files (Under the
+<IT>C/C++</IT> tab, <IT>Preprocessor</IT> category, <IT>Additional include
+directories</IT> field). You should enter here the directory <TT>lib/xparam</TT>
+in the XParam distribution.</item>
+<item>Link with the XParam library. To do this go to the <IT>Link</IT> tab,
+<IT>input</IT> category. Add <TT>xparam.lib</TT> at the end of the field 
+<IT>Object/library modules</IT>, and add the path to the XParam library in the 
+<IT>Additional library path</IT> field (If you've used the supplied project
+settings to compile the library, this entry should be <TT>lib/bin</TT>
+relative to the root of the XParam distribution).</item>
+</itemize>
+<item>If your non-Unix compiler is not Visual C++, there may be certain
+features that XParam uses that your compiler might not support. Consult the
+XParam header file <TT>xp_config.h</TT> in order to decide on the correct
+compilation flags that will make XParam work around the missing features.</item>
+<item>You have now finished the installation of XParam. All
+the usage instructions are in the <TT>doc</TT> library, including how to
+run the programs under <TT>examples</TT> to verify that the installation
+was successful.</item>
+</itemize>
+
+<sect1><heading>Making Changes<label id="changes"></><P>
+All that was said above refers to the library's ready-to-compile sources.
+If you want to make changes in these sources, you should take the following
+into account:
+<itemize>
+<item>The XParam parser and lexer were written using a parser generator called
+ANTLR. The descriptions of the parser and lexer appear under directory
+<TT>lib/meta_sources/*.g</TT>. In order to re-create the parser, you must
+first install ANTLR. ANTLR is freeware, available from www.antlr.org.
+ANTLR is
+written in Java, so you must also have Java installed, in order to run it.</item>
+<item>Use <TT>lib/meta_sources/update_parsers.pl</TT> to run ANTLR, because
+XParam has to tweak the ANTLR output before it can use the files.</item>
+<item>XParam's ready-to-compile version can handle constructors of only up
+to 13 parameters. If you wish to exceed this limit,
+simply run <TT>lib/meta_sources/ctor_code_gen.pl</TT> with the upper
+limit you desire as a parameter. (See <TT>README.txt</TT>, in the same
+directory for further details.)</item>
+<item>The <TT>.pl</TT> files in <TT>lib/meta_sources</TT> are Perl files.
+In order to run them, you must have a Perl interpreter installed.</item>
+<item>If you write any patch, bug-fix or extension to XParam, make sure you
+send us a copy. Simply <TT>diff</TT> your version with ours, and send
+the resulting patch-file to the tracker at <TT>xparam.sourceforge.net</TT>.
+</itemize>
+
+<sect><heading>Usage Examples<label id="Usage Examples"></>
+<sect1><heading>Intro to the Examples<label id="E-introduction"></><P>
+The following sections describe three examples of XParam programs
+in order of increasing sophistication. The full compileable sources
+and run-able binaries can be found in the "examples" directory of the
+XParam distribution. If you've installed the xparam-devel RPM, you
+will find these examples in a tar ball, in the same directory as
+this documentation.
+<P>
+The files referenced by this HTML have been abbreviated, for
+clarity, by omitting a large part of the license notice at the beginning
+of each. The code, however, is still protected by the same license as the
+rest of XParam. Other than this change, the files are identical to those
+used in the actual working code.
+<P>
+<sect1><heading>Simple Example<label id="simpleexample"></><P>
+This little C++ program demonstrates a very simple usage of XParam.
+It asks for two inputs, an integer called "num" and a string
+called "name". "num" is a number you're guessing; "name" is your
+name. The program reads this input from the command line. Next
+it reads an integer from the file
+<url url="doc_examples/my_number.txt" name="my_number.txt"> and sees whether
+you guessed too high or too low. Finally, the program outputs
+"my_number" as a ParamSet, in the format recognizeable by other
+XParam programs, which is also human-readable.
+<P>
+You can execute this program with no parameters, and will receive
+the reply that "num" is a required parameter. You can input "num"
+only, in which case the program will enter the default name:
+"John Doe", or you can enter both parameters. You can also
+execute this program with the help-request option:
+<P><tscreen><code>
+~&gt; simple !
+</code></tscreen><P>
+for example, and this will give you all the parameter information.
+<P>
+One particularly amusing way to execute this program is by using
+<P><tscreen><code>
+~&gt; simple num=@my_number.txt
+</code></tscreen><P>
+This will redirect "num" to be read from "my_number.txt", which,
+of course, will lead to your number being exactly correct.
+<P>
+The full code can be found in
+<url url="doc_examples/simple.cpp" name="simple.cpp">. 
+<sect1><heading>Involved Example<label id="involvedexample"></><P>
+A more involved example is the example of initializing an entire
+drawing, using a polymorphic Shape pointer. This example is given
+in <url url="doc_examples/involved.cpp" name="involved.cpp">.
+The generic shape interface is given in
+<url url="doc_examples/shapes.h" name="shapes.h"> and its
+implementation is in
+<url url="doc_examples/shapes.cpp" name="shapes.cpp">. The
+interface is registered in
+<url url="doc_examples/reg_shapes.cpp" name="reg_shapes.cpp">.
+<P>
+You can execute this program using
+<P><tscreen><code>
+~&gt; bin/involved @data/my_shape.txt
+</code></tscreen><P>
+This will load the shape information from the file
+<url url="doc_examples/my_shape.txt" name="my_shape.txt">.
+The shape information itself uses class "Circle", which has not been
+defined in "shapes.h". Consequently, XParam will dynamically load
+the dynamic link library that was compiled from the
+files <url url="doc_examples/circle.cpp" name="circle.cpp"> and
+<url url="doc_examples/reg_circle.cpp" name="reg_circle.cpp">
+(the command to do so is in
+<url url="doc_examples/circle.xpn" name="circle.xpn">).
+These files implement and register the circle class, whose interface appears in
+<url url="doc_examples/circle.h" name="circle.h">.
+<P>
+This program demonstrates parameter passing with user-defined
+classes and dynamic loading. For it to work, you must make sure
+that environment variable XPARAM_CLASSPATH is set, and that the
+path of <url url="doc_examples/circle.xpn" name="circle.xpn">
+appears in it. 
+<P>
+Note: XParam does not currently support dynamic loading in Windows,
+so for the example to work in Windows you will have to link in the
+files <url url="doc_examples/circle.cpp" name="circle.cpp"> and
+<url url="doc_examples/reg_circle.cpp" name="reg_circle.cpp">
+statically.
+<P>
+<sect1><heading>Calculator Example<label id="calculatorexample"></><P>
+This program demonstrates an interactive usage of streams. The
+main program code appears in
+<url url="doc_examples/calculator.cpp" name="calculator.cpp">.
+This is all the code you need to program a calculator in XParam,
+because all the parsing is done by XParam for you. However, you
+still need to program classes for the different arithmetic
+operations. These classes appear in
+<url url="doc_examples/functions.h" name="functions.h"> and
+<url url="doc_examples/functions.cpp" name="functions.cpp">.
+They are registered into XParam in
+<url url="doc_examples/reg_functions.cpp" name="reg_functions.cpp">.
+With these files alone, this is already a functioning calculator.
+<P>
+However, we also wanted to demonstrate that the calculator is easily
+extendable. By adding the files
+<url url="doc_examples/mathfunc.h" name="mathfunc.h">,
+<url url="doc_examples/reg_mathfunc.cpp" name="reg_mathfunc.cpp"> and
+<url url="doc_examples/mathfunc.xpn" name="mathfunc.xpn"> we
+managed to add two functions, "sqrt" and "ln", which are loaded
+dynamically when needed.
+<P>
+The program is a calculator, working on doubles, that supports the
+functions "add", "sub", "mul" and "div" (as well as "sqrt" and "ln").
+It reads its input as an input object stream from the standard input
+and outputs its output as an output object stream to the standard
+output. Errors go to the standard error. The calculator supports
+commands that look like this: "mul(5,add(4,2))". This input will
+cause it to output "30.0", because 5*(4+2)=30. The calculator also
+supports variables. use "def(var1,13)" to define "var1" to be "13".
+Variable names are general strings. To use the variable, simply use
+its name: "sub(var1,8)" will output "5.0". To exit the calculator,
+simple truncate the input stream (^D in Unix or ^Z under Windows).
+<P>
+Another thing you can do is import an object, by using the redirection
+operator. A single object may contain many variable definitions. This
+is done by placing them between brackets. Use "@data/constants.dat" to
+import Pi and E from
+<url url="doc_examples/constants.dat" name="constants.dat">,
+for example.
+<P>
+Calculator also demonstrates another use-case for paramsets. Though
+there is no command-line input needed for the calculator, it
+nevertheless uses a paramset to read the command line. This allows
+the calculator to give usage instructions with the "!" directive,
+as well as help on specific functions.
+<P>
+The main thing to note about the calculator is that no concessions
+had to be made regarding its interface (with the exception that it
+has to use functions instead of operators), because of the use of
+XParam. Correct design of the class hierarchy it uses makes it possible
+for you to write "15" and it to be accepted as a number, "max" and it
+to be accepted as a variable, "[ def(one,1), def(two,2) ]" and for
+that to be accepted as a list of definitions, a single redirection
+to import many variables, any format of double to be readable,
+usage of "div" and "sqrt", even though these are functions that already
+have a meaning in C++, and so on. On the output side, the
+interface provides output as soon as you finish writing an expression,
+it outputs a stream of XParam doubles, readable by other
+XParam-supporting programs,
+when you input a calculation, and nothing when you input a definition
+or a list of definitions - these were all design goals.
+<P>
+The class hierarchy in the calculator program makes XParam implicitly
+convert values to the type you need them in, in order for the user
+not to have to be at all aware of the existence of classes such as
+<TT>ArithValue</TT>, <TT>Expression</TT> and <TT>MultiDef</TT>. She
+will only ever encounter them in error messages.
+
+<sect><heading>Frequently Asked Questions<label id="Frequently Asked Questions"></>
+<P>
+<itemize>
+<item>
+<bf>XParam is great, but I'm not sure if your license allows me to use it in my product.</bf><P><P>
+Here's the good news: the XParam license doesn't restrict anybody from using
+the library. If all you want is to link in with the XParam library and/or
+include the XParam header files into your program, then XParam's license
+does not restrict you at all. You can use XParam in any program, including
+commercial, non-free, products. You don't owe us money for it, nor even an
+acknowledgement (though we generally think it would be a nice thing if you'd
+mention us somewhere in the documentation).
+<P>
+XParam's license is GPL with an exemption. The exemption is that
+programs are not considered derivative works of XParam simply because they
+are linked in with the library. So, if that's all you're doing, the license
+simply does not apply to you, and you're free to do whatever you want. This
+is the case if you're a simple user of the library, a programmer of
+XParam-using programs, or even a registrator of new classes into XParam.
+<P>
+If, on the other hand, what you want to do is to add new features to XParam,
+fix an XParam bug, make XParam work better, or do any other activity that
+requires modification of the XParam source files (which includes the
+cpp files, header files, parser files, make files, project files, Perl
+scripts, etc., that come as part of the XParam distribution), then you are
+creating a derivative work of XParam, and that means that the XParam license
+binds you as though it was GPL. Chiefly, this means that you must make the
+new sources, with
+whatever changes you make, freely available under a license that is at least
+as restrictive as the XParam license. (Both GPL and LGPL fall under this
+category.) You must note the fact that these are not the original sources,
+that you are the one to change them, and where the original, unmodified
+sources can be found.
+<P>
+The simplest way to do all this is to mail us the relevant patch file
+(or its equivalent),
+and we'll do the rest. This can be done through our SourceForge homepage.
+<P>
+We chose the XParam license after reviewing many alternative licenses and
+finding them too restrictive. We wanted a license that would allow everybody
+to use the library. We thank Richard Stallman for pointing us to GNU's GUILE,
+that uses an analogous license.
+</P></item>
+<item><bf>I've downloaded XParam, but I can't find the library anywhere. What should I do?</bf><P><P>
+Up until version 1.21 of XParam, this library only had a source distribution.
+For this reason, when you downloaded it, you got cpp files, header files, and
+virtually nothing that was compiled. Certainly, there was no compiled library
+there to be found.
+For some downloaders, who are more familiar with precompiled packages, such
+as RPMs, DEBs and the like, this came as something of a surprise.
+<P>
+What you want to do with a source distribution is follow the instructions
+given in the "Installing XParam" section of this manual. They will tell you
+exactly how to get from the sources to the binaries you want. You will,
+however, need to have some basic tools, such as a C++ compiler, installed.
+<P>
+Starting version 1.21, XParam also comes with an RPM, so it is no longer
+necessary to compile it on your computer. In the future, we hope that more
+and more packages will make use of this RPM, utilizing XParam as an I/O
+platform for their own packages. We know of some such packages that are
+currently being developed.
+</P></item>
+<item><bf>XParam doesn't compile right for me: it complains that it doesn't know what extract&lt;T&gt; and what make_value_copy&lt;T&gt; are, for a class T that I wrote.</bf><P><P>
+See next question.
+</P></item>
+<item><bf>Oh, wait! I've figured out why it doesn't find extract and make_value_copy. You forgot to #include "xpv_facade_imp.h"!</bf><P><P>
+If you get a linker error, complaining that XParam does not find these two
+template functions, what your problem is likely to be, is that you forgot to
+link some files in with your project. Typically, you forgot to link in the
+files that register class T.
+<P>
+And, no. We didn't forget to include "xpv_facade_imp.h". The program is
+supposed to compile, link and run perfectly without this inclusion. If
+you try to put it in manually, you will only be making things worse. The
+omission of this header file is a well know trick, meant to speed up
+compilation. This is only supposed to cause you trouble if your C++ compiler
+is extremely old, in which case it will no doubt also lack several other
+features needed by XParam.
+</P></item>
+<item><bf>XParam doesn't compile right for me: it complains that it doesn't know what extract&lt;T&gt; and what make_value_copy&lt;T&gt; are, where T is a standard C++/XParam class.</bf><P><P>
+Hmmm... If it's a standard class, this is a different problem altogether.
+It may be that you didn't link in all the source files of the library when
+you built it in the first place, or that the relevant function calls were
+omitted by your compiler.
+<P>
+One possible cause for this problem is that you have two different versions of
+XParam on your computer, and are linking against a different copy of the
+library than you intend. For example, you may have downloaded a local copy of
+version 1.22, but are still linking against your RPM of version 1.21. Use
+explicit link and include paths to make sure you are compiling and linking
+with the intended copy of the library.
+<P>
+If you've checked these possibilities already, and the problem seems to be
+elsewhere,
+try compiling with -DXPARAM_STATIC_LIBRARY, and if that doesn't work either,
+look at the file xp_config.h, and see if there are other configuration
+options that may be applicable in your case.
+<P>
+If the problem persists, tell us about it. Also contact us if you found out
+that your compiler needs certain special tweaks to make XParam run on
+it. If we can make these tweaks become part of the package, we'll probably
+do so for the next release.
+</P></item>
+<item><bf>What kind of library are you selling here? I did everything just like you said, and XParam still breaks on a Segmentation Fault as soon as I try to use it!</bf><P><P>
+If you run XParam and it throws a segmentation fault at you, it's probably
+because you forgot that XParam uses exceptions. Many XParam functions, such
+as "xparam_init()" and "ParamSet::input()", can and do throw exceptions, when
+they detect user errors.
+<P>
+If you neglect to surround XParam's calls in a "try" block, you can very
+easily find yourself with an unhandled exception. Many polite compilers exit
+from the program in such a case, notifying the user of an unhandled exception.
+Other, less polite compilers simply make your program crash on a segmentation
+fault.
+<P>
+One of the features we want to add to XParam is a work mode in which XParam
+errors will be reported by means other than exceptions. (For example, you may
+want XParam to report errors on the standard error stream, and exit from
+your program immediately afterwards.) However, this is not
+currently supported, and we can make no guarantees nor even time
+estimates regarding when such a feature may be introduced.
+</P></item>
+<item><bf>XParam looks like a great library, and I'm trying to use it in this project of mine, where I've got an inheritance hierarchy nine classes deep, with multiple inheritance, abstract interfaces, virtual inheritance, and conversions between map types over structs and vector types over enums, and I can't get it to work. Is it possible that XParam doesn't support these?</bf><P><P>
+Well, XParam does support all of these, but it takes a little time and some
+practice registering classes before you get to the proficiency level required
+to pull off something like this.
+<P>
+If you've successfully registered simple cases of all of the above, there's
+no reason you shouldn't be able to register the whole thing together. If,
+on the other hand, this is the first time you've ever tried using XParam's
+registration, we suggest you start with a few less ambitious experiments.
+<P>
+If you feel that you've tinkered with XParam long enough to know that what
+you're trying should work and doesn't, do contact us and we'll try to help.
+<P>
+Here's one tip: XParam's registrations may take considerable amounts of
+heap memory to compile. If you've got many registration calls you need to
+make, do your compiler a favor and split them into several files.
+</P></item>
+<item><bf>Help! I installed XParam on a ### computer running an ### operating system, with a ### compiler, and it doesn't compile right/link right/install properly/the examples don't work/give me lots of warning messages.</bf><P><P>
+We've tested XParam on several systems. These include several generations of
+MSWindows (including several CygWin versions), several generations of RedHat,
+several generations of Debian,
+one Mandrake and one SolarisOS. We've also tried it on quite a few different
+compilers. On gcc alone we started from the 2.9s and have worked our way
+up to 3.2.
+<P>
+Of course, that's just the list of environments that we managed to test
+in-house. Our install base likely spans many other environments as well,
+and we've only received relatively few reports about environments where
+XParam doesn't behave well.
+<P>
+One thing we've learnt about the C++ language is that no two compilers share
+identical views about it, nor are there two operating systems completely
+identical in their quirks. Generally speaking, when you port XParam to a
+new environment, it may take a little tweaking to make it run exactly right.
+(It is, after all, a very compiler intensive library.) However, on the whole,
+little to no tweaking is all it generally takes. It never posed any serious
+problems. Not even when we ported it originally from Linux to Windows.
+<P>
+The XParam distribution comes with an elaborate autoconf script, meant to
+work around the most common porting pitfalls, and we are using libtool as
+a further means of making the transitions easier, but neither of these
+systems is perfect.
+<P>
+If your operating system is not listed above, this is no reason to assume
+it won't work there. Try it. If it works, let us know. If it doesn't, let
+us know, too. If it originally didn't work, and you found a way to work
+around the problem, this is doubly true.
+<P>
+As a general policy, we haven't written in XParam any piece of code for
+which we have no means of testing. We know, for example, that XParam's
+dynamic loading mechanism will probably not work well on a Digital Alpha,
+because it was designed for a 32bit operating system. We could have
+written the code, but had no way of verifying that it actually works
+correctly. In all such cases, we rely on you, the XParam developer, to
+help us make XParam work on your favorite platform.
+</P></item>
+<item><bf>Is there any way to get XParam's documentation as a single HTML file?</bf><P><P>
+XParam's HTML documentation usually comes separated into several files. If,
+for some reason, it is important to you that the documentation will consist
+of a single file, you can always opt to use the SGML version
+of our documentation, which comes with the XParam package and is also
+available for separate download from our CVS (hosted by SourceForge).
+It is an SGML file conforming to the linuxdoc dtd.
+<P>
+If you must have the documentation in HTML form, you can always produce it
+from the SGML. If you have SGML-Tools installed, the command
+<P><P><code>
+sgml2html --split=0 xparam.sgml
+</code></P><P>
+will yield documentation in a single HTML file.
+<P>
+If linuxdoc converters are not available to you, you can also find all of
+XParam's documentation, in formats ranging from single-file HTMLs, through
+PostScript, to PDFs, in the "XParam-docs" tar file, available for download
+from our SourceForge homepage.
+</P></item>
+<item><bf>There's this nifty feature that I really need XParam to support. Can you put it in?</bf><P><P>
+See next question.
+</P></item>
+<item><bf>I want XParam to be able to solve my algebra homework. Are you going to add this feature any time soon?</bf><P><P>
+As we mentioned before, we're programming as fast as we can, and we can't
+predict when - or even if - any particular feature will be added to XParam.
+However, if you need any particular feature from XParam, do let us know.
+We might not start working on it right away, but it will definitely boost
+its priority on our worklist.
+<P>
+If you're just interested in getting a general glimpse of what's planned in
+XParam's near future, you can take a look at the "help XParam" page on our
+homepage and at the "TODO" file in the distribution. We don't feel ourselves
+tied to either list, though, so don't be surprised if items not on either
+list supercede other, longstanding items.
+</P></item>
+<item><bf>How can I help XParam?</bf><P><P>
+XParam is an ongoing effort. If you look at the "help XParam" page on our
+homepage, you'll get an idea of some of the things we're planning on putting
+into XParam. We are programming these as fast as we can, but any additional
+pair of hands will be invaluable help to us.
+<P>
+If you want to help us, you can simply program any of the items on the
+"help XParam" list (it's very diverse in the skills it requires). Better yet,
+you can contact us and we'll figure out together what subproject best suits
+your capabilities.
+<P>
+In fact, if you'll just program for youself the features that you most need
+for XParam, and then send them to us, that will be great. Most of the features
+XParam has today were programmed because we needed them in our projects.
+</P></item>
+</itemize>
+
+<sect><heading>Conversion Rules<label id="Conversion Rules"></>
+<sect1><heading>Intro to the Conversion Rules<label id="C-introduction"></><P>
+In using XParam, it is common to utilize the fact that not all conversions
+must be explicitly requested. Often, XParam performs implicit
+conversions in order to execute a command.
+The following is a description of XParam's implicit conversion rules.
+It is not intended to be the definitive guide to the rules. Some rules
+may be a little more complex than they are presented here. This
+appendix is meant, however, to help you understand better why
+XParam chooses one conversion path over another, for this to assist
+you in controlling its behavior, whether as a user or as a registrator.
+<P>
+<sect1><heading>The Weights<label id="weights"></><P>
+As C++, XParam recognizes that not all conversions are alike.
+Certain conversions, such as one from <TT>bool</TT> to <TT>int</TT>,
+look more appealing than others, such as from <TT>double</TT> to <TT>int</TT>.
+This is expressed in the form of weights. The more weight a conversion
+carries, the less attractive it seems. XParam recognizes several basic
+weights:
+<descrip>
+<tag>CONV_EXACT</tag>a conversion between a type and itself. Its weight is essentially zero.<P>
+<tag>CONV_PROMOTION</tag>a conversion from a <TT>bool</TT> to an
+<TT>int</TT> or from an
+<TT>unsigned char</TT> to an <TT>unsigned int</TT>.<P>
+<tag>CONV_STANDARD</tag>any conversion between two built-in C++
+types other than those covered by CONV_PROMOTIONs and those involving type
+<TT>char</TT>.<P>
+<tag>CONV_TO_PARENT</tag>a conversion between a pointer to
+a base type and a pointer to its parent type.<P>
+<tag>CONV_USER</tag>any conversion not covered by
+previous rules. This is the default weight whenever a new conversion
+is registered by the user.<P>
+</descrip>
+<P>
+The weights are listed here in order of increasing weight. The difference
+in weight between any two is infinite, so, for example, a sequence of any
+number of CONV_TO_PARENT conversions is still considered more
+appealing than a single CONV_USER. Note that XParam does
+not consider a switch from an object to a pointer to bear any weight.
+<P>
+With the exception of value-lists, explained below, the weight of
+a conversion path is considered to be the sum of the weights of all
+conversions along it. No more than one CONV_USER is
+allowed on a conversion path.
+<P>
+XParam will always choose the lightest available conversion path.
+If no conversion path can be considered lightest (for example, if
+two conversion paths are exactly as good) then XParam will call
+this an ambiguity.
+<P>
+This is more or less how C++ evaluates conversions, too. The main
+difference is that, in XParam, all conversions between type <TT>char</TT>
+and other built-in C++ types (numeric types) must be specified explicitly.
+<sect1><heading>Tentative Types<label id="tentative"></><P>
+In C++, all explicit literal constants have a type. You specify
+strings by quotation marks, characters by apostrophes, single
+precision floating point decimals by a trailing 'f', and so on.
+<P>
+Because XParam works most commonly from the command-line, a more
+relaxed syntax is allowed in XParam to minimize the necessity of
+using characters that have meaning in Unix shell-parsing, such as
+quotations and apostrophes. For this reason, an assignment such
+as this:
+<P><tscreen><code>
+my_parameter = 7
+</code></tscreen><P>
+can be interpretted with the character <TT>7</TT> representing an
+explicit literal constant of type <TT>int</TT>, <TT>char</TT> or
+even <TT>std::string</TT>. XParam resolves this ambiguity by use
+of "tentative types" and destination-driven type matching. In
+essence, what this means is that XParam checks what types of
+explicit literal constants are permitted in the given context
+(for example, by checking the type of <TT>my_parameter</TT>)
+and then what types the given literal matches (in
+this case: <TT>int</TT>,<TT>char</TT> and <TT>std::string</TT>).
+Of the remaining options, XParam chooses according to the following
+rules:
+<itemize>
+<item>A numeric type is preferable to a non-numeric type.</item>
+<item>A <TT>char</TT> is preferable to an <TT>std::string</TT>.</item>
+</itemize>
+Remember that it is always possible to override these rules by
+explicitly specifying your desired type (for example, by adding
+quotation marks or apostrophes).
+<sect1><heading>List Comparisons<label id="C-lists"></><P>
+List comparisons are different than scalar comparisons. Weighing them,
+in fact, looks very similar to the algorithm used by C++ (and XParam)
+to choose between overloaded functions and methods.
+<P>
+When choosing between "func(int,int)" and "func(long,long)" when
+receiving an input, for example "func(3,5L)", C++ weighs each
+element separately, so the distance from "func(3,5L)" to
+"func(int,int)" is (CONV_EXACT, CONV_STANDARD), and the
+distance from "func(3,5L)" to "func(long,long)" is
+(CONV_STANDARD, CONV_EXACT). Now, we must determine which
+of these possibilities is better. The way to do it is to go
+element by element and compare. If one option is at-least as
+good as any other option in all elements, and better than all
+other options in at least one element, then it is considered
+the best. If two options are exactly as good in all
+elements, then the two options are considered to be as good, as a whole.
+If, on the other hand, as is the case here, when comparing two
+options there is an element that is better in one and another
+element that is better in the other, then the two options
+are considered incomparable. If asked to choose between them,
+both C++ and XParam will determine that this is an ambiguity.
+<P>
+XParam takes this element-by-element approach in lists, as well.
+If <TT>school</TT>, for example, is a class that can be constructed from
+a vector of integers or from a vector of <TT>fish</TT>, and the
+initialization line is "elementary=[ 4L, 5L ]", where "elementary"
+is a variable of type <TT>school</TT>, then XParam must
+now choose between converting "[4L, 5L]", element by element,
+into a list of integers, "[4, 5]", which can be converted into
+an <TT>std::vector&lt;int&gt;</TT>, and converting the
+"[4L, 5L]", element-by-element, into a list of <TT>fish</TT>,
+"[fish(4L), fish(5L)]", and from there to a <TT>std::vector&lt;fish&gt;</TT>.
+<P>
+Supposing class <TT>fish</TT> has a constructor from <TT>long</TT>,
+then the first option weighs (CONV_STANDARD, CONV_STANDARD)
+and the second option weighs (CONV_USER,
+CONV_USER). Therefore, XParam will choose going through
+a vector of integers.
+<P>
+Let's, however, make this example more complicated. What if
+"elementary" was not of type <TT>school</TT> but of type <TT>school*</TT>,
+and <TT>school</TT> was a parent class to <TT>public_school*</TT>,
+and, furthermore, that it is not <TT>school</TT> that has a constructor
+from a vector of integers but <TT>public_school</TT>?
+<P>
+If we sort through all the details, we'll find that XParam must now
+choose between two paths:
+<P>
+untyped list -&gt; list of <TT>fish</TT> -&gt; <TT>std::vector&lt;fish&gt;</TT>
+ -&gt; <TT>school</TT>
+<P>
+and
+<P>
+untyped list -&gt; list of <TT>int</TT> -&gt; <TT>std::vector&lt;int&gt;</TT>
+-&gt; <TT>public_school</TT> -&gt; <TT>school</TT>
+<P>
+We know that it is easier to go from our list to a vector of integers than
+it is to go to a vector of <TT>fish</TT>. However, once we get there, it
+weighs more to go from integers to <TT>school*</TT> than it is from
+<TT>fish</TT> to <TT>school*</TT>. Which will XParam choose? The rule
+is that any conversions that are done after an HVL-to-class conversion
+bare a negligent weight compared to what is done prior to the conversion.
+So, in this case, XParam will still decide to go through
+<TT>std::vector&lt;int&gt;</TT>. If the two conversions, until the switch
+from HVL to vector, had been uncomparable, then the entire paths would
+have been uncomparable. Only if the two conversion paths had been of
+equivalent weights until the switch from HVL to vector, the weights
+of the latter part of the conversion path would have had effect.
+
+<sect><heading>Credits for Contributions to XParam<label id="Credits for Contributions to XParam"></><P>
+XParam was programmed by Ronnie Maor &lt;<tt/maor@operamail.com/&gt;
+and Michael Brand &lt;<tt/mb_xp@xparam.mailshell.com/&gt;.
+<P>
+Substantial intellectual contributions were made by Erez Louidor
+and Aaron Brand.
+<P>
+The XParam RPM package was prepared by Shachar Shemesh.
+<P>
+The XParam parser was written using the ANTLR parser generator. This
+parser is freeware. See the
+<url url="http://www.antlr.org/" name="ANTLR homepage"> for further details about ANTLR.
+The ANTLR project leader is Terrance Parr, and the C++ version of
+ANTLR was mainly written by Peter Wells and Ric Klaren.
+</article>

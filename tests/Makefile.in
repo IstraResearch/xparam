@@ -1,0 +1,103 @@
+CXX = @CXX@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+includedir=@includedir@
+libdir=@libdir@
+
+CMPDIR = test_res.@dynamic@_cmp
+
+TESTS := test1 test2 test3 test4 test5 test6 test7 test8 test9
+
+ifeq (@LONG_LONG@,yes)
+TESTS := $(TESTS) test10
+endif
+
+ifeq (@LONG_DOUBLE@,yes)
+TESTS := $(TESTS) test11
+
+ifeq (@LONG_LONG@,yes)
+TESTS := $(TESTS) test12
+endif
+
+endif
+
+TESTS := $(TESTS) test13 test14 test15 test16 test17 test18 test19 test20
+
+COMPARISON=$(patsubst %,$(CMPDIR)/%_out.res,$(TESTS))
+
+all : test
+
+include Makefile.depend
+
+test : message $(TESTS)
+	@echo "All tests passed successfully."
+
+message :
+	@echo "Building tests... please wait."
+
+
+$(TESTS) : % : test_res/%_out.res
+	diff test_res/$@_out.res $(CMPDIR)/$@_out.res
+
+prepare : $(COMPARISON)
+
+$(CMPDIR)/%_out.res : bin/%
+	@if [ -e script/$*.bash ]; \
+then cd script; env XPARAM_CLASSPATH=. ./$*.bash > ../$@; \
+else env XPARAM_CLASSPATH=. $< >$@; fi
+
+test_res/test20_out.res : bin/test_readraw
+
+test_res/%_out.res : bin/%
+ifeq (x$(DESTDIR),x)
+#	@env XPARAM_CLASSPATH=. $< >$@
+	@if [ -e script/$*.bash ]; \
+then cd script; env XPARAM_CLASSPATH=. ./$*.bash > ../$@; \
+else env XPARAM_CLASSPATH=. $< >$@; fi
+else
+#	@env XPARAM_CLASSPATH=. LD_LIBRARY_PATH=$(DESTDIR)$(libdir) $< >$@
+	@if [ -e script/$*.bash ]; then cd script; env XPARAM_CLASSPATH=. \
+LD_LIBRARY_PATH=$(DESTDIR)$(libdir) ./$*.bash > ../$@; \
+else env XPARAM_CLASSPATH=. LD_LIBRARY_PATH=$(DESTDIR)$(libdir) $< >$@; fi
+endif
+
+
+bin/test4 : obj/test_marker.o obj/test_reg_marker.o
+bin/test13 bin/test14 bin/test15 bin/test16 : obj/test_reg_bottle.o
+bin/test1 bin/test2 bin/test3 bin/test4 bin/test5 bin/test6 : obj/test_reg_duck2.o
+bin/test1 bin/test2 bin/test3 bin/test4 bin/test5 bin/test6 : obj/test_reg_duck.o
+bin/test1 bin/test2 bin/test3 bin/test4 bin/test5 bin/test6 : obj/test_reg_coordinate.o
+bin/test1 bin/test2 bin/test3 bin/test4 bin/test5 bin/test6 : obj/test_marker.o obj/test_reg_marker.o
+bin/test7 bin/test13 bin/test14 bin/test15 bin/test16 : obj/test_reg_goose.o
+bin/test13 bin/test14 bin/test15 bin/test16 : obj/test_reg_pair_map.o
+bin/test13 bin/test14 bin/test15 bin/test16 : obj/test_reg_vec_list.o
+bin/test5 : obj/test_reg_reader.o
+bin/test9 bin/test10 bin/test11 bin/test12 : obj/test_reg_everything.o
+bin/test11 : obj/test_reg_everything2.o
+bin/test20 bin/test_readraw : obj/test_reg_rawprinter.o
+
+bin/% : obj/%.o
+ifeq (x$(DESTDIR),x)
+	@$(CXX) -lxparam -o $@ $^
+else
+	@cd .. ; env LD_LIBRARY_PATH=$(DESTDIR)$(libdir) \
+$(CXX) -L$(DESTDIR)$(libdir) -lxparam -o $(patsubst %,tests/%,$@ $^) ; cd tests
+endif
+
+obj/%.o : src/%.cpp Makefile
+ifeq (x$(DESTDIR),x)
+	@$(CXX) -c -o $@ $<
+else
+	@cd .. ; $(CXX) -I$(DESTDIR)$(includedir) -c -o $(patsubst %,tests/%,$@ $<) ; cd tests
+endif
+
+clean :
+	@-rm -f test_res/* bin/* obj/*
+
+mostly_clean :
+	@-rm -f test_res/*
+
+clean_comparison :
+	@-rm -f $(CMPDIR)/*
+
+.PHONY : all clean test $(TESTS) message prepare clean_comparison

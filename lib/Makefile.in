@@ -1,0 +1,48 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+
+XPARAM_OBJ_PATH = obj
+XPARAM_SRC_PATH = sources
+XPARAM_LIB_PATH = lib
+
+XPARAM_SOURCE_FILES = $(wildcard $(XPARAM_SRC_PATH)/*.cpp)
+
+XPARAM_OBJ_FILES=$(patsubst $(XPARAM_SRC_PATH)/%.cpp,$(XPARAM_OBJ_PATH)/%.o,$(XPARAM_SOURCE_FILES))
+XPARAM_LOBJ_FILES=$(patsubst $(XPARAM_SRC_PATH)/%.cpp,$(XPARAM_OBJ_PATH)/%.lo,$(XPARAM_SOURCE_FILES))
+
+ANTLR_PATH = antlr
+ANTLR_OBJ_PATH = $(ANTLR_PATH)/obj
+ANTLR_SRC_PATH = $(ANTLR_PATH)/src
+ANTLR_INCLUDE_PATH = $(ANTLR_PATH)
+
+ANTLR_SOURCES = $(wildcard $(ANTLR_SRC_PATH)/*.cpp)
+
+ANTLR_OBJ_FILES = $(patsubst $(ANTLR_SRC_PATH)/%.cpp, $(ANTLR_OBJ_PATH)/%.o, $(ANTLR_SOURCES))
+ANTLR_LOBJ_FILES = $(patsubst $(ANTLR_SRC_PATH)/%.cpp, $(ANTLR_OBJ_PATH)/%.lo, $(ANTLR_SOURCES))
+
+ALL_OBJ_FILES = $(XPARAM_OBJ_FILES) $(ANTLR_OBJ_FILES)
+ALL_LOBJ_FILES = $(XPARAM_LOBJ_FILES) $(ANTLR_LOBJ_FILES)
+
+LIBRARY = $(XPARAM_LIB_PATH)/libxparam.la
+ 
+all : $(LIBRARY)
+
+include Makefile.depend
+
+clean:
+	-rm -f $(ALL_OBJ_FILES) $(ALL_LOBJ_FILES) $(LIBRARY)
+	-rm -rf $(XPARAM_LIB_PATH)/.libs
+	-rm -rf $(XPARAM_OBJ_PATH)/.libs $(ANTLR_OBJ_PATH)/.libs
+
+$(XPARAM_LOBJ_FILES) : $(XPARAM_OBJ_PATH)/%.lo : $(XPARAM_SRC_PATH)/%.cpp Makefile
+	libtool @CXX@ @CXXFLAGS@ @CPPFLAGS@ -I$(ANTLR_INCLUDE_PATH) -c -o $@ $<
+
+$(ANTLR_LOBJ_FILES) : $(ANTLR_OBJ_PATH)/%.lo : $(ANTLR_SRC_PATH)/%.cpp
+	libtool @CXX@ @CXXFLAGS@ @CPPFLAGS@ -I$(ANTLR_INCLUDE_PATH) -c -o $@ $<
+
+$(LIBRARY) : $(ALL_LOBJ_FILES)
+	libtool @CXX@ @LDFLAGS@ -o $(LIBRARY) $(ALL_LOBJ_FILES) @LIBS@ -rpath $(libdir) -version-info 1:0:0
+
+.PHONY : all clean
+

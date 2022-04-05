@@ -1,0 +1,29 @@
+#NOTE: for this program to work, the test/classpath path must be
+#      included in your XPARAM_CLASSPATH variable.
+
+TARGETS = bin/calculator sobj/mathfunc.so
+OBJECTS = obj/calculator.o obj/functions.o obj/reg_functions.o
+SOBJECTS = obj/reg_mathfunc.o
+SLOBJECTS = obj/reg_mathfunc.lo
+
+CXX = @CXX@
+
+all : $(TARGETS)
+
+bin/calculator : $(OBJECTS)
+	$(CXX) $^ -lxparam -o $@
+
+$(OBJECTS) : obj/%.o : src/%.cpp include/functions.h Makefile
+	$(CXX) -c -o $@ $<
+
+sobj/mathfunc.so : $(SLOBJECTS)
+	libtool $(CXX) -shared $^ -lxparam -o $@
+
+$(SLOBJECTS) : obj/%.lo : src/%.cpp include/mathfunc.h include/functions.h
+	libtool $(CXX) -c -o $@ $<
+
+clean :
+	-rm -f $(TARGETS) $(OBJECTS) $(SOBJECTS) $(SLOBJECTS)
+	-rm -rf obj/.libs sobj/.libs
+
+.PHONY : all clean

@@ -1,0 +1,857 @@
+This is xparam.info, produced by makeinfo version 4.1 from
+/tmp/linuxdoc-dir-24148/sgmltmp.xparam.info.2.
+
+   \input texinfo
+
+
+File: xparam.info,  Node: Installation in Unix,  Next: Installation in Windows,  Up: Installing XParam
+
+Installation in Unix
+====================
+
+   * The XParam source files are available in the file
+     `xparam-1.22.tar.gz'.  Use `tar zxvf xparam-1.22.tar.gz' to
+     uncompress and untar this file to where you want it. We will
+     assume you put the XParam files under `/usr/local/src/'.
+
+   * The XParam files are under four main directories. Under `lib' you
+     will find the code for building the library itself.  Under
+     `examples' you will find example programs using XParam. Under
+     `tests' you will find regression testing code. Under `doc' you
+     will find the library's html documentation, including this file.
+     The tar file only contains sources for building the library,
+     example code and regression testing code, and does not by itself
+     contain the executables or the linkable library. Building XParam,
+     according to the instructions given below, will create these
+     executables and library code.
+
+   * XParam uses autoconf. Run './configure' from the main directory to
+     create the library's Makefile, then run 'make install' from the
+     main directory to build the library and install it. (Using 'make'
+     will build the library, but will not install it.) 'make check'
+     will run regression testing. 'make examples' will compile the
+     example code.  'make check' and 'make examples' will only work
+     after the library is installed.
+
+   * Set environment variable XPARAM_CLASSPATH to include all
+     directories where you want XParam to search for its '.xpn' files
+     (separated by colons).  To run the example programs, you will need
+     this path to include
+     `/usr/local/src/xparam-1.22/examples/classpath' (or the equivalent
+     to reach the `examples/classpath' subdirectory in the
+     distribution, if you untarred XParam in a directory other than
+     `/usr/local/src').
+
+   * The standard XParam installation places the file `libxparam.so'
+     under `/usr/local/lib', the XParam header files xparam.h and
+     xparam_extend.h under `/usr/local/include', and the rest of
+     XParam's include files (which are never used directly) under
+     `/usr/local/include/xparam'. Use the './configure' directive
+     '-disable-priv-includes' if you want to install all include files
+     in the same directory, or '-enable-priv-includes[=path]' to
+     install the private include files to a relative path other than
+     'xparam'.
+
+   * Use the './configure' directive '-disable-dynamic' if you wish to
+     have the dynamic loading feature disabled. This will only affect
+     your system if it has dynamic loading support. Otherwise, this
+     feature will be automatically disabled.
+
+   * If, for some reason, you do not want XParam to be useable until a
+     certain point in your program, use -enable-explicit-init. This
+     will cause XParam not to work before a call to xparam_init().
+     Otherwise, XParam registrations will all be executed on the first
+     use of XParam in the program.  This option is particularly useful
+     if you are concerned that someone might use XParam before
+     "main()", when you can not be sure that all registrations have
+     already been initiated. Typically, xparam_init() will be the first
+     line of your "main()".
+
+   * XParam's configuration can make use of environment variables such
+     as LDFLAGS, CPPFLAGS and CXXFLAGS, in the normal way. However, by
+     default, it does not set the -O2 and -g flags in CXXFLAGS, even if
+     your compiler supports them. This is because neither speed
+     optimization nor debug information is usually important for the
+     XParam user. (After all, this is an I/O package.) On the other
+     hand, these flags can slow down compilation considerably. To
+     override this default behavior, and have XParam turn on the -O2
+     and -g flags if they are available, use '-enable-cxxflags' when
+     running './configure'.
+
+   * The examples subdirectory of XParam can be configured separately
+     from the rest of the package. It is equipped with its own
+     configure script.  It can be executed using "examples/configure".
+     By default, configuring the package also configures the examples
+     subdirectory, using equivalent parameters. If you want to
+     configure the library without configuring its examples, use the
+     ./configure option -disable-config-examples.
+
+   * Make sure that the directory where you installed the XParam library
+     is a trusted directory for loading shared objects. (See "man
+     ldconfig" for details.)
+
+   * If, while running 'make install', environment variable DESTDIR is
+     set, XParam will install to that directory. That is, any file that
+     is meant to be installed to the directory /X will, instead, be
+     installed to DESTDIR/X.  This is useful for checking XParam's
+     installation without actually installing.  Running 'make check'
+     with DESTDIR still set to the same value will run the XParam tests
+     on the copy of the installation based in DESTDIR. Note that
+     installing with DESTDIR causes no 'ldconfig' command to be
+     executed.  (See ldconfig's documentation for details.) If you
+     install to DESTDIR, you should subsequently copy all files created
+     in DESTDIR's subdirectory to their proper places and run ldconfig
+     to complete the installation.  This is not necessary when
+     installing directly to the final destination.
+
+   * You have now finished the installation of XParam. All the usage
+     instructions are in the `doc' library, including how to run the
+     programs under `examples' to verify that the installation was
+     successful.
+
+
+File: xparam.info,  Node: Installation in Windows,  Next: Making Changes,  Prev: Installation in Unix,  Up: Installing XParam
+
+Installation in Windows
+=======================
+
+   * The XParam source files are available in the file
+     `xparam-1.22.tar.gz'.  Use WinZip or similar utility to uncompress
+     and untar this file to where you want it.
+
+   * The XParam files are under four main directories. Under `lib' you
+     will find the code for building the library itself.  Under
+     `examples' you will find example programs using XParam. Under
+     `tests' you will find regression testing code. Under `doc' you
+     will find the library's html documentation, including this file.
+     The tar file only contains sources for building the library,
+     example code and regression testing code, and does not by itself
+     contain the executables or the linkable library. Building XParam,
+     according to the instructions given below, will create these
+     executables and library code.
+
+   * Load the workspace file `xparam.dsw' (for Visual C++ 6.0).  It
+     contains all the projects and settings for compiling the XParam
+     library and examples with Visual C++ 6.0 - just run the `build'
+     command on your selected project.  When you want to create your
+     own project using XParam, you should make the following project
+     settings:
+        * Turn on RTTI (Under the `C/C++' tab, `C++ Language' category)
+
+        * Add the include directory for XParam's include files (Under
+          the `C/C++' tab, `Preprocessor' category, `Additional include
+          directories' field). You should enter here the directory
+          `lib/xparam' in the XParam distribution.
+
+        * Link with the XParam library. To do this go to the `Link' tab,
+          `input' category. Add `xparam.lib' at the end of the field
+          `Object/library modules', and add the path to the XParam
+          library in the `Additional library path' field (If you've
+          used the supplied project settings to compile the library,
+          this entry should be `lib/bin' relative to the root of the
+          XParam distribution).
+
+   * If your non-Unix compiler is not Visual C++, there may be certain
+     features that XParam uses that your compiler might not support.
+     Consult the XParam header file `xp_config.h' in order to decide on
+     the correct compilation flags that will make XParam work around
+     the missing features.
+
+   * You have now finished the installation of XParam. All the usage
+     instructions are in the `doc' library, including how to run the
+     programs under `examples' to verify that the installation was
+     successful.
+
+
+File: xparam.info,  Node: Making Changes,  Prev: Installation in Windows,  Up: Installing XParam
+
+Making Changes
+==============
+
+   All that was said above refers to the library's ready-to-compile
+sources.  If you want to make changes in these sources, you should take
+the following into account:
+   * The XParam parser and lexer were written using a parser generator
+     called ANTLR. The descriptions of the parser and lexer appear
+     under directory `lib/meta_sources/*.g'. In order to re-create the
+     parser, you must first install ANTLR. ANTLR is freeware, available
+     from www.antlr.org.  ANTLR is written in Java, so you must also
+     have Java installed, in order to run it.
+
+   * Use `lib/meta_sources/update_parsers.pl' to run ANTLR, because
+     XParam has to tweak the ANTLR output before it can use the files.
+
+   * XParam's ready-to-compile version can handle constructors of only
+     up to 13 parameters. If you wish to exceed this limit, simply run
+     `lib/meta_sources/ctor_code_gen.pl' with the upper limit you
+     desire as a parameter. (See `README.txt', in the same directory
+     for further details.)
+
+   * The `.pl' files in `lib/meta_sources' are Perl files.  In order to
+     run them, you must have a Perl interpreter installed.
+
+   * If you write any patch, bug-fix or extension to XParam, make sure
+     you send us a copy. Simply `diff' your version with ours, and send
+     the resulting patch-file to the tracker at
+     `xparam.sourceforge.net'.
+
+
+File: xparam.info,  Node: Usage Examples,  Next: Frequently Asked Questions,  Prev: Installing XParam,  Up: Top
+
+Usage Examples
+**************
+
+* Menu:
+
+* Intro to the Examples::
+* Simple Example::
+* Involved Example::
+* Calculator Example::
+
+
+File: xparam.info,  Node: Intro to the Examples,  Next: Simple Example,  Up: Usage Examples
+
+Intro to the Examples
+=====================
+
+   The following sections describe three examples of XParam programs in
+order of increasing sophistication. The full compileable sources and
+run-able binaries can be found in the "examples" directory of the
+XParam distribution. If you've installed the xparam-devel RPM, you will
+find these examples in a tar ball, in the same directory as this
+documentation.
+
+   The files referenced by this HTML have been abbreviated, for
+clarity, by omitting a large part of the license notice at the beginning
+of each. The code, however, is still protected by the same license as
+the rest of XParam. Other than this change, the files are identical to
+those used in the actual working code.
+
+
+File: xparam.info,  Node: Simple Example,  Next: Involved Example,  Prev: Intro to the Examples,  Up: Usage Examples
+
+Simple Example
+==============
+
+   This little C++ program demonstrates a very simple usage of XParam.
+It asks for two inputs, an integer called "num" and a string called
+"name". "num" is a number you're guessing; "name" is your name. The
+program reads this input from the command line. Next it reads an
+integer from the file my_number.txt (doc_examples/my_number.txt) and
+sees whether you guessed too high or too low. Finally, the program
+outputs "my_number" as a ParamSet, in the format recognizeable by other
+XParam programs, which is also human-readable.
+
+   You can execute this program with no parameters, and will receive
+the reply that "num" is a required parameter. You can input "num" only,
+in which case the program will enter the default name: "John Doe", or
+you can enter both parameters. You can also execute this program with
+the help-request option:
+
+          ~> simple !
+
+   for example, and this will give you all the parameter information.
+
+   One particularly amusing way to execute this program is by using
+
+          ~> simple num=@my_number.txt
+
+   This will redirect "num" to be read from "my_number.txt", which, of
+course, will lead to your number being exactly correct.
+
+   The full code can be found in simple.cpp (doc_examples/simple.cpp).
+
+
+File: xparam.info,  Node: Involved Example,  Next: Calculator Example,  Prev: Simple Example,  Up: Usage Examples
+
+Involved Example
+================
+
+   A more involved example is the example of initializing an entire
+drawing, using a polymorphic Shape pointer. This example is given in
+involved.cpp (doc_examples/involved.cpp).  The generic shape interface
+is given in shapes.h (doc_examples/shapes.h) and its implementation is
+in shapes.cpp (doc_examples/shapes.cpp). The interface is registered in
+reg_shapes.cpp (doc_examples/reg_shapes.cpp).
+
+   You can execute this program using
+
+          ~> bin/involved @data/my_shape.txt
+
+   This will load the shape information from the file my_shape.txt
+(doc_examples/my_shape.txt).  The shape information itself uses class
+"Circle", which has not been defined in "shapes.h". Consequently,
+XParam will dynamically load the dynamic link library that was compiled
+from the files circle.cpp (doc_examples/circle.cpp) and reg_circle.cpp
+(doc_examples/reg_circle.cpp) (the command to do so is in circle.xpn
+(doc_examples/circle.xpn)).  These files implement and register the
+circle class, whose interface appears in circle.h
+(doc_examples/circle.h).
+
+   This program demonstrates parameter passing with user-defined
+classes and dynamic loading. For it to work, you must make sure that
+environment variable XPARAM_CLASSPATH is set, and that the path of
+circle.xpn (doc_examples/circle.xpn) appears in it.
+
+   Note: XParam does not currently support dynamic loading in Windows,
+so for the example to work in Windows you will have to link in the
+files circle.cpp (doc_examples/circle.cpp) and reg_circle.cpp
+(doc_examples/reg_circle.cpp) statically.
+
+
+File: xparam.info,  Node: Calculator Example,  Prev: Involved Example,  Up: Usage Examples
+
+Calculator Example
+==================
+
+   This program demonstrates an interactive usage of streams. The main
+program code appears in calculator.cpp (doc_examples/calculator.cpp).
+This is all the code you need to program a calculator in XParam,
+because all the parsing is done by XParam for you. However, you still
+need to program classes for the different arithmetic operations. These
+classes appear in functions.h (doc_examples/functions.h) and
+functions.cpp (doc_examples/functions.cpp).  They are registered into
+XParam in reg_functions.cpp (doc_examples/reg_functions.cpp).  With
+these files alone, this is already a functioning calculator.
+
+   However, we also wanted to demonstrate that the calculator is easily
+extendable. By adding the files mathfunc.h (doc_examples/mathfunc.h),
+reg_mathfunc.cpp (doc_examples/reg_mathfunc.cpp) and mathfunc.xpn
+(doc_examples/mathfunc.xpn) we managed to add two functions, "sqrt" and
+"ln", which are loaded dynamically when needed.
+
+   The program is a calculator, working on doubles, that supports the
+functions "add", "sub", "mul" and "div" (as well as "sqrt" and "ln").
+It reads its input as an input object stream from the standard input
+and outputs its output as an output object stream to the standard
+output. Errors go to the standard error. The calculator supports
+commands that look like this: "mul(5,add(4,2))". This input will cause
+it to output "30.0", because 5*(4+2)=30. The calculator also supports
+variables. use "def(var1,13)" to define "var1" to be "13".  Variable
+names are general strings. To use the variable, simply use its name:
+"sub(var1,8)" will output "5.0". To exit the calculator, simple
+truncate the input stream (^D in Unix or ^Z under Windows).
+
+   Another thing you can do is import an object, by using the
+redirection operator. A single object may contain many variable
+definitions. This is done by placing them between brackets. Use
+"@data/constants.dat" to import Pi and E from constants.dat
+(doc_examples/constants.dat), for example.
+
+   Calculator also demonstrates another use-case for paramsets. Though
+there is no command-line input needed for the calculator, it
+nevertheless uses a paramset to read the command line. This allows the
+calculator to give usage instructions with the "!" directive, as well
+as help on specific functions.
+
+   The main thing to note about the calculator is that no concessions
+had to be made regarding its interface (with the exception that it has
+to use functions instead of operators), because of the use of XParam.
+Correct design of the class hierarchy it uses makes it possible for you
+to write "15" and it to be accepted as a number, "max" and it to be
+accepted as a variable, "[ def(one,1), def(two,2) ]" and for that to be
+accepted as a list of definitions, a single redirection to import many
+variables, any format of double to be readable, usage of "div" and
+"sqrt", even though these are functions that already have a meaning in
+C++, and so on. On the output side, the interface provides output as
+soon as you finish writing an expression, it outputs a stream of XParam
+doubles, readable by other XParam-supporting programs, when you input a
+calculation, and nothing when you input a definition or a list of
+definitions - these were all design goals.
+
+   The class hierarchy in the calculator program makes XParam implicitly
+convert values to the type you need them in, in order for the user not
+to have to be at all aware of the existence of classes such as
+`ArithValue', `Expression' and `MultiDef'. She will only ever encounter
+them in error messages.
+
+
+File: xparam.info,  Node: Frequently Asked Questions,  Next: Conversion Rules,  Prev: Usage Examples,  Up: Top
+
+Frequently Asked Questions
+**************************
+
+   * `XParam is great, but I'm not sure if your license allows me to
+     use it in my product.'
+
+     Here's the good news: the XParam license doesn't restrict anybody
+     from using the library. If all you want is to link in with the
+     XParam library and/or include the XParam header files into your
+     program, then XParam's license does not restrict you at all. You
+     can use XParam in any program, including commercial, non-free,
+     products. You don't owe us money for it, nor even an
+     acknowledgement (though we generally think it would be a nice
+     thing if you'd mention us somewhere in the documentation).
+
+     XParam's license is GPL with an exemption. The exemption is that
+     programs are not considered derivative works of XParam simply
+     because they are linked in with the library. So, if that's all
+     you're doing, the license simply does not apply to you, and you're
+     free to do whatever you want. This is the case if you're a simple
+     user of the library, a programmer of XParam-using programs, or
+     even a registrator of new classes into XParam.
+
+     If, on the other hand, what you want to do is to add new features
+     to XParam, fix an XParam bug, make XParam work better, or do any
+     other activity that requires modification of the XParam source
+     files (which includes the cpp files, header files, parser files,
+     make files, project files, Perl scripts, etc., that come as part
+     of the XParam distribution), then you are creating a derivative
+     work of XParam, and that means that the XParam license binds you
+     as though it was GPL. Chiefly, this means that you must make the
+     new sources, with whatever changes you make, freely available
+     under a license that is at least as restrictive as the XParam
+     license. (Both GPL and LGPL fall under this category.) You must
+     note the fact that these are not the original sources, that you
+     are the one to change them, and where the original, unmodified
+     sources can be found.
+
+     The simplest way to do all this is to mail us the relevant patch
+     file (or its equivalent), and we'll do the rest. This can be done
+     through our SourceForge homepage.
+
+     We chose the XParam license after reviewing many alternative
+     licenses and finding them too restrictive. We wanted a license
+     that would allow everybody to use the library. We thank Richard
+     Stallman for pointing us to GNU's GUILE, that uses an analogous
+     license.
+
+   * `I've downloaded XParam, but I can't find the library anywhere.
+     What should I do?'
+
+     Up until version 1.21 of XParam, this library only had a source
+     distribution.  For this reason, when you downloaded it, you got
+     cpp files, header files, and virtually nothing that was compiled.
+     Certainly, there was no compiled library there to be found.  For
+     some downloaders, who are more familiar with precompiled packages,
+     such as RPMs, DEBs and the like, this came as something of a
+     surprise.
+
+     What you want to do with a source distribution is follow the
+     instructions given in the "Installing XParam" section of this
+     manual. They will tell you exactly how to get from the sources to
+     the binaries you want. You will, however, need to have some basic
+     tools, such as a C++ compiler, installed.
+
+     Starting version 1.21, XParam also comes with an RPM, so it is no
+     longer necessary to compile it on your computer. In the future, we
+     hope that more and more packages will make use of this RPM,
+     utilizing XParam as an I/O platform for their own packages. We
+     know of some such packages that are currently being developed.
+
+   * `XParam doesn't compile right for me: it complains that it doesn't
+     know what extract<T> and what make_value_copy<T> are, for a class
+     T that I wrote.'
+
+     See next question.
+
+   * `Oh, wait! I've figured out why it doesn't find extract and
+     make_value_copy. You forgot to #include "xpv_facade_imp.h"!'
+
+     If you get a linker error, complaining that XParam does not find
+     these two template functions, what your problem is likely to be,
+     is that you forgot to link some files in with your project.
+     Typically, you forgot to link in the files that register class T.
+
+     And, no. We didn't forget to include "xpv_facade_imp.h". The
+     program is supposed to compile, link and run perfectly without
+     this inclusion. If you try to put it in manually, you will only be
+     making things worse. The omission of this header file is a well
+     know trick, meant to speed up compilation. This is only supposed
+     to cause you trouble if your C++ compiler is extremely old, in
+     which case it will no doubt also lack several other features
+     needed by XParam.
+
+   * `XParam doesn't compile right for me: it complains that it doesn't
+     know what extract<T> and what make_value_copy<T> are, where T is a
+     standard C++/XParam class.'
+
+     Hmmm... If it's a standard class, this is a different problem
+     altogether.  It may be that you didn't link in all the source
+     files of the library when you built it in the first place, or that
+     the relevant function calls were omitted by your compiler.
+
+     One possible cause for this problem is that you have two different
+     versions of XParam on your computer, and are linking against a
+     different copy of the library than you intend. For example, you
+     may have downloaded a local copy of version 1.22, but are still
+     linking against your RPM of version 1.21. Use explicit link and
+     include paths to make sure you are compiling and linking with the
+     intended copy of the library.
+
+     If you've checked these possibilities already, and the problem
+     seems to be elsewhere, try compiling with -DXPARAM_STATIC_LIBRARY,
+     and if that doesn't work either, look at the file xp_config.h, and
+     see if there are other configuration options that may be
+     applicable in your case.
+
+     If the problem persists, tell us about it. Also contact us if you
+     found out that your compiler needs certain special tweaks to make
+     XParam run on it. If we can make these tweaks become part of the
+     package, we'll probably do so for the next release.
+
+   * `What kind of library are you selling here? I did everything just
+     like you said, and XParam still breaks on a Segmentation Fault as
+     soon as I try to use it!'
+
+     If you run XParam and it throws a segmentation fault at you, it's
+     probably because you forgot that XParam uses exceptions. Many
+     XParam functions, such as "xparam_init()" and "ParamSet::input()",
+     can and do throw exceptions, when they detect user errors.
+
+     If you neglect to surround XParam's calls in a "try" block, you
+     can very easily find yourself with an unhandled exception. Many
+     polite compilers exit from the program in such a case, notifying
+     the user of an unhandled exception.  Other, less polite compilers
+     simply make your program crash on a segmentation fault.
+
+     One of the features we want to add to XParam is a work mode in
+     which XParam errors will be reported by means other than
+     exceptions. (For example, you may want XParam to report errors on
+     the standard error stream, and exit from your program immediately
+     afterwards.) However, this is not currently supported, and we can
+     make no guarantees nor even time estimates regarding when such a
+     feature may be introduced.
+
+   * `XParam looks like a great library, and I'm trying to use it in
+     this project of mine, where I've got an inheritance hierarchy nine
+     classes deep, with multiple inheritance, abstract interfaces,
+     virtual inheritance, and conversions between map types over
+     structs and vector types over enums, and I can't get it to work.
+     Is it possible that XParam doesn't support these?'
+
+     Well, XParam does support all of these, but it takes a little time
+     and some practice registering classes before you get to the
+     proficiency level required to pull off something like this.
+
+     If you've successfully registered simple cases of all of the
+     above, there's no reason you shouldn't be able to register the
+     whole thing together. If, on the other hand, this is the first
+     time you've ever tried using XParam's registration, we suggest you
+     start with a few less ambitious experiments.
+
+     If you feel that you've tinkered with XParam long enough to know
+     that what you're trying should work and doesn't, do contact us and
+     we'll try to help.
+
+     Here's one tip: XParam's registrations may take considerable
+     amounts of heap memory to compile. If you've got many registration
+     calls you need to make, do your compiler a favor and split them
+     into several files.
+
+   * `Help! I installed XParam on a ### computer running an ###
+     operating system, with a ### compiler, and it doesn't compile
+     right/link right/install properly/the examples don't work/give me
+     lots of warning messages.'
+
+     We've tested XParam on several systems. These include several
+     generations of MSWindows (including several CygWin versions),
+     several generations of RedHat, several generations of Debian, one
+     Mandrake and one SolarisOS. We've also tried it on quite a few
+     different compilers. On gcc alone we started from the 2.9s and
+     have worked our way up to 3.2.
+
+     Of course, that's just the list of environments that we managed to
+     test in-house. Our install base likely spans many other
+     environments as well, and we've only received relatively few
+     reports about environments where XParam doesn't behave well.
+
+     One thing we've learnt about the C++ language is that no two
+     compilers share identical views about it, nor are there two
+     operating systems completely identical in their quirks. Generally
+     speaking, when you port XParam to a new environment, it may take a
+     little tweaking to make it run exactly right.  (It is, after all,
+     a very compiler intensive library.) However, on the whole, little
+     to no tweaking is all it generally takes. It never posed any
+     serious problems. Not even when we ported it originally from Linux
+     to Windows.
+
+     The XParam distribution comes with an elaborate autoconf script,
+     meant to work around the most common porting pitfalls, and we are
+     using libtool as a further means of making the transitions easier,
+     but neither of these systems is perfect.
+
+     If your operating system is not listed above, this is no reason to
+     assume it won't work there. Try it. If it works, let us know. If
+     it doesn't, let us know, too. If it originally didn't work, and
+     you found a way to work around the problem, this is doubly true.
+
+     As a general policy, we haven't written in XParam any piece of
+     code for which we have no means of testing. We know, for example,
+     that XParam's dynamic loading mechanism will probably not work
+     well on a Digital Alpha, because it was designed for a 32bit
+     operating system. We could have written the code, but had no way
+     of verifying that it actually works correctly. In all such cases,
+     we rely on you, the XParam developer, to help us make XParam work
+     on your favorite platform.
+
+   * `Is there any way to get XParam's documentation as a single HTML
+     file?'
+
+     XParam's HTML documentation usually comes separated into several
+     files. If, for some reason, it is important to you that the
+     documentation will consist of a single file, you can always opt to
+     use the SGML version of our documentation, which comes with the
+     XParam package and is also available for separate download from
+     our CVS (hosted by SourceForge).  It is an SGML file conforming to
+     the linuxdoc dtd.
+
+     If you must have the documentation in HTML form, you can always
+     produce it from the SGML. If you have SGML-Tools installed, the
+     command
+
+          sgml2html --split=0 xparam.sgml
+
+     will yield documentation in a single HTML file.
+
+     If linuxdoc converters are not available to you, you can also find
+     all of XParam's documentation, in formats ranging from single-file
+     HTMLs, through PostScript, to PDFs, in the "XParam-docs" tar file,
+     available for download from our SourceForge homepage.
+
+   * `There's this nifty feature that I really need XParam to support.
+     Can you put it in?'
+
+     See next question.
+
+   * `I want XParam to be able to solve my algebra homework. Are you
+     going to add this feature any time soon?'
+
+     As we mentioned before, we're programming as fast as we can, and
+     we can't predict when - or even if - any particular feature will
+     be added to XParam.  However, if you need any particular feature
+     from XParam, do let us know.  We might not start working on it
+     right away, but it will definitely boost its priority on our
+     worklist.
+
+     If you're just interested in getting a general glimpse of what's
+     planned in XParam's near future, you can take a look at the "help
+     XParam" page on our homepage and at the "TODO" file in the
+     distribution. We don't feel ourselves tied to either list, though,
+     so don't be surprised if items not on either list supercede other,
+     longstanding items.
+
+   * `How can I help XParam?'
+
+     XParam is an ongoing effort. If you look at the "help XParam" page
+     on our homepage, you'll get an idea of some of the things we're
+     planning on putting into XParam. We are programming these as fast
+     as we can, but any additional pair of hands will be invaluable
+     help to us.
+
+     If you want to help us, you can simply program any of the items on
+     the "help XParam" list (it's very diverse in the skills it
+     requires). Better yet, you can contact us and we'll figure out
+     together what subproject best suits your capabilities.
+
+     In fact, if you'll just program for youself the features that you
+     most need for XParam, and then send them to us, that will be
+     great. Most of the features XParam has today were programmed
+     because we needed them in our projects.
+
+
+
+File: xparam.info,  Node: Conversion Rules,  Next: Credits for Contributions to XParam,  Prev: Frequently Asked Questions,  Up: Top
+
+Conversion Rules
+****************
+
+* Menu:
+
+* Intro to the Conversion Rules::
+* The Weights::
+* Tentative Types::
+* List Comparisons::
+
+
+File: xparam.info,  Node: Intro to the Conversion Rules,  Next: The Weights,  Up: Conversion Rules
+
+Intro to the Conversion Rules
+=============================
+
+   In using XParam, it is common to utilize the fact that not all
+conversions must be explicitly requested. Often, XParam performs
+implicit conversions in order to execute a command.  The following is a
+description of XParam's implicit conversion rules.  It is not intended
+to be the definitive guide to the rules. Some rules may be a little
+more complex than they are presented here. This appendix is meant,
+however, to help you understand better why XParam chooses one
+conversion path over another, for this to assist you in controlling its
+behavior, whether as a user or as a registrator.
+
+
+File: xparam.info,  Node: The Weights,  Next: Tentative Types,  Prev: Intro to the Conversion Rules,  Up: Conversion Rules
+
+The Weights
+===========
+
+   As C++, XParam recognizes that not all conversions are alike.
+Certain conversions, such as one from `bool' to `int', look more
+appealing than others, such as from `double' to `int'.  This is
+expressed in the form of weights. The more weight a conversion carries,
+the less attractive it seems. XParam recognizes several basic weights:
+`CONV_EXACT'
+     a conversion between a type and itself. Its weight is essentially
+     zero.
+
+`CONV_PROMOTION'
+     a conversion from a `bool' to an `int' or from an `unsigned char'
+     to an `unsigned int'.
+
+`CONV_STANDARD'
+     any conversion between two built-in C++ types other than those
+     covered by CONV_PROMOTIONs and those involving type `char'.
+
+`CONV_TO_PARENT'
+     a conversion between a pointer to a base type and a pointer to its
+     parent type.
+
+`CONV_USER'
+     any conversion not covered by previous rules. This is the default
+     weight whenever a new conversion is registered by the user.
+
+   The weights are listed here in order of increasing weight. The
+difference in weight between any two is infinite, so, for example, a
+sequence of any number of CONV_TO_PARENT conversions is still
+considered more appealing than a single CONV_USER. Note that XParam does
+not consider a switch from an object to a pointer to bear any weight.
+
+   With the exception of value-lists, explained below, the weight of a
+conversion path is considered to be the sum of the weights of all
+conversions along it. No more than one CONV_USER is allowed on a
+conversion path.
+
+   XParam will always choose the lightest available conversion path.
+If no conversion path can be considered lightest (for example, if two
+conversion paths are exactly as good) then XParam will call this an
+ambiguity.
+
+   This is more or less how C++ evaluates conversions, too. The main
+difference is that, in XParam, all conversions between type `char' and
+other built-in C++ types (numeric types) must be specified explicitly.
+
+
+File: xparam.info,  Node: Tentative Types,  Next: List Comparisons,  Prev: The Weights,  Up: Conversion Rules
+
+Tentative Types
+===============
+
+   In C++, all explicit literal constants have a type. You specify
+strings by quotation marks, characters by apostrophes, single precision
+floating point decimals by a trailing 'f', and so on.
+
+   Because XParam works most commonly from the command-line, a more
+relaxed syntax is allowed in XParam to minimize the necessity of using
+characters that have meaning in Unix shell-parsing, such as quotations
+and apostrophes. For this reason, an assignment such as this:
+
+          my_parameter = 7
+
+   can be interpretted with the character `7' representing an explicit
+literal constant of type `int', `char' or even `std::string'. XParam
+resolves this ambiguity by use of "tentative types" and
+destination-driven type matching. In essence, what this means is that
+XParam checks what types of explicit literal constants are permitted in
+the given context (for example, by checking the type of `my_parameter')
+and then what types the given literal matches (in this case:
+`int',`char' and `std::string').  Of the remaining options, XParam
+chooses according to the following rules:
+   * A numeric type is preferable to a non-numeric type.
+
+   * A `char' is preferable to an `std::string'.
+
+   Remember that it is always possible to override these rules by
+explicitly specifying your desired type (for example, by adding
+quotation marks or apostrophes).
+
+
+File: xparam.info,  Node: List Comparisons,  Prev: Tentative Types,  Up: Conversion Rules
+
+List Comparisons
+================
+
+   List comparisons are different than scalar comparisons. Weighing
+them, in fact, looks very similar to the algorithm used by C++ (and
+XParam) to choose between overloaded functions and methods.
+
+   When choosing between "func(int,int)" and "func(long,long)" when
+receiving an input, for example "func(3,5L)", C++ weighs each element
+separately, so the distance from "func(3,5L)" to "func(int,int)" is
+(CONV_EXACT, CONV_STANDARD), and the distance from "func(3,5L)" to
+"func(long,long)" is (CONV_STANDARD, CONV_EXACT). Now, we must
+determine which of these possibilities is better. The way to do it is
+to go element by element and compare. If one option is at-least as good
+as any other option in all elements, and better than all other options
+in at least one element, then it is considered the best. If two options
+are exactly as good in all elements, then the two options are
+considered to be as good, as a whole.  If, on the other hand, as is the
+case here, when comparing two options there is an element that is
+better in one and another element that is better in the other, then the
+two options are considered incomparable. If asked to choose between
+them, both C++ and XParam will determine that this is an ambiguity.
+
+   XParam takes this element-by-element approach in lists, as well.  If
+`school', for example, is a class that can be constructed from a vector
+of integers or from a vector of `fish', and the initialization line is
+"elementary=[ 4L, 5L ]", where "elementary" is a variable of type
+`school', then XParam must now choose between converting "[4L, 5L]",
+element by element, into a list of integers, "[4, 5]", which can be
+converted into an `std::vector<int>', and converting the "[4L, 5L]",
+element-by-element, into a list of `fish', "[fish(4L), fish(5L)]", and
+from there to a `std::vector<fish>'.
+
+   Supposing class `fish' has a constructor from `long', then the first
+option weighs (CONV_STANDARD, CONV_STANDARD) and the second option
+weighs (CONV_USER, CONV_USER). Therefore, XParam will choose going
+through a vector of integers.
+
+   Let's, however, make this example more complicated. What if
+"elementary" was not of type `school' but of type `school*', and
+`school' was a parent class to `public_school*', and, furthermore, that
+it is not `school' that has a constructor from a vector of integers but
+`public_school'?
+
+   If we sort through all the details, we'll find that XParam must now
+choose between two paths:
+
+   untyped list -> list of `fish' -> `std::vector<fish>' -> `school'
+
+   and
+
+   untyped list -> list of `int' -> `std::vector<int>' ->
+`public_school' -> `school'
+
+   We know that it is easier to go from our list to a vector of
+integers than it is to go to a vector of `fish'. However, once we get
+there, it weighs more to go from integers to `school*' than it is from
+`fish' to `school*'. Which will XParam choose? The rule is that any
+conversions that are done after an HVL-to-class conversion bare a
+negligent weight compared to what is done prior to the conversion.  So,
+in this case, XParam will still decide to go through
+`std::vector<int>'. If the two conversions, until the switch from HVL
+to vector, had been uncomparable, then the entire paths would have been
+uncomparable. Only if the two conversion paths had been of equivalent
+weights until the switch from HVL to vector, the weights of the latter
+part of the conversion path would have had effect.
+
+
+File: xparam.info,  Node: Credits for Contributions to XParam,  Prev: Conversion Rules,  Up: Top
+
+Credits for Contributions to XParam
+***********************************
+
+   XParam was programmed by Ronnie Maor <`maor@operamail.com'> and
+Michael Brand <`mb_xp@xparam.mailshell.com'>.
+
+   Substantial intellectual contributions were made by Erez Louidor and
+Aaron Brand.
+
+   The XParam RPM package was prepared by Shachar Shemesh.
+
+   The XParam parser was written using the ANTLR parser generator. This
+parser is freeware. See the ANTLR homepage (http://www.antlr.org/) for
+further details about ANTLR.  The ANTLR project leader is Terrance
+Parr, and the C++ version of ANTLR was mainly written by Peter Wells
+and Ric Klaren.
+
+

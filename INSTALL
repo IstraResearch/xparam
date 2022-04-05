@@ -1,0 +1,81 @@
+Brief Installation Instructions ========================================
+
+The complete installation instructions are available in HTML format
+in doc/installation.html. Here is a summary.
+
+Building on Unix:
+
+1. Type "tar xvfz xparam-1.22.tar.gz", to unpack the package.
+2. Type "make install", to build and install the package, or "make"
+     for build only.
+3. Type "make check", for regression testing.
+4. Type "make examples", to build example code.
+
+Note:
+1. XParam has been tested on Red Hat Linux 7.1-7.3 and on Debian
+   Linux (kernel version 2.2). If you are using a different operating
+   system, please let us know how XParam functions there.
+
+2. The "configure" auto-configuration file accepts the modifier
+   "--disable-priv-includes" or "--enable-priv-includes[=relative path]".
+   This determines on which path the rest of XParam's include files will
+   be installed relative to the xparam.h and xparam_extend.h files. By
+   default, the relative path is "xparam". By choosing to disable the
+   option, all include files will be placed in the same directory.
+
+3. "configure" also accepts the modifier "--disable-dynamic". If you
+   have dynamic loading capacity on your system, and you do not wish
+   XParam to utilize it, choose this option. Note that if you do not
+   have the capability to load shared objects dynamically, XParam should
+   be able to detect this, and compile itself without dynamic loading
+   automatically.
+
+4. In addition, "configure" accepts the modifier "--enable-explicit-init".
+   This modifier makes XParam not execute any of its registration
+   instructions until a call to "xparam_init()" is made. This allows you
+   to control when XParam can be used in your program. Typically,
+   "xparam_init()" will run as the first command in your "main()",
+   excluding the possibility of using XParam before "main()".
+
+5. By default, XParam uses environment variables CPPFLAGS, CXXFLAGS and
+   LDFLAGS as preprocessing, compilation and link-time flags, respectively,
+   if these are set. If you want, in addition, to have it automatically
+   test for the availability of "-g" and "-O2" at compile-time, use the
+   "configure" directive "--enable-cxxflags". This is only relevant if
+   the environment variable CXXFLAGS is not already set. Otherwise, the
+   option has no effect.
+
+6. If the environment variable DESTDIR is set during "make install",
+   XParam will be installed to DESTDIR. (By default, this means that
+   the library will reside under DESTDIR/usr/local/lib, and the include
+   files under DESTDIR/usr/local/include.) Running "make check" with
+   DESTDIR on the same setting, will run regression testing on the library
+   in its temporary destination. You can copy the files from there to
+   the library's final destination.
+
+7. XParam has separate configure scripts for the library (and its tests) and
+   for the example code. By default, both these scripts execute together
+   with equal parameters when you run ./configure. You can inhibit the
+   configuration of the examples subdirectory by using the ./configure
+   option --disable-config-examples. The configuration of the examples
+   can be done separately by running examples/configure.
+
+8. In order for the example code to work, you must set your
+   XPARAM_CLASSPATH environment variable to include the path of the
+   examples/classpath subdirectory. A complete explanation of the usage
+   of this variable is available in doc/registration.html.
+
+9. XParam is a shared object library. You must make sure that the library
+   you install it in (/usr/local/lib by default) is a trusted library for
+   running shared objects. (see "man ldconfig" for details.) This is
+   particularly important if you installed through a DESTDIR, instead of
+   using a direct installation.
+
+Building on Windows:
+
+1. unpack xparam-1.22.tar.gz with WinZip or similar utility.
+2. load xparam.dsw into VC6, and use it to build the library, test and
+   example programs.
+
+XParam utilizes RTTI. Make sure it is enabled.
+

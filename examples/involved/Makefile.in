@@ -1,0 +1,32 @@
+#NOTE: for this program to work, the test/classpath path must be
+#      included in your XPARAM_CLASSPATH variable.
+#
+# You can run this program by entering:
+#   bin/involved @data/my_shape.txt
+
+TARGETS = bin/involved sobj/circle.so
+OBJECTS = obj/involved.o obj/shapes.o obj/reg_shapes.o
+SOBJECTS = obj/circle.o obj/reg_circle.o
+SLOBJECTS = obj/circle.lo obj/reg_circle.lo
+
+CXX = @CXX@
+
+all : $(TARGETS)
+
+bin/involved : $(OBJECTS)
+	$(CXX) $^ -lxparam -o $@
+
+$(OBJECTS) : obj/%.o : src/%.cpp include/shapes.h Makefile
+	$(CXX) -c -o $@ $<
+
+sobj/circle.so : $(SLOBJECTS)
+	libtool $(CXX) -shared $^ -lxparam -o $@
+
+$(SLOBJECTS) : obj/%.lo : src/%.cpp include/circle.h include/shapes.h
+	libtool $(CXX) -c -o $@ $<
+
+clean :
+	-rm -f $(TARGETS) $(OBJECTS) $(SOBJECTS) $(SLOBJECTS)
+	-rm -rf obj/.libs sobj/.libs
+
+.PHONY : all clean

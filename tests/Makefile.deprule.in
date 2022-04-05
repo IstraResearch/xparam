@@ -1,0 +1,22 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+TEST_SOURCES = $(wildcard src/*.cpp)
+
+all : Makefile.depend
+
+Makefile.depend :
+ifeq (x$(DESTDIR),x)
+	set -e; @CXX@ -M $(TEST_SOURCES) | \
+	sed 's/\(.*\)\.o[ :]*/obj\/\1.o : /g' > Makefile.depend; \
+	test -s Makefile.depend || rm -f Makefile.depend
+else
+	set -e; @CXX@ -I$(DESTDIR)$(includedir) -M $(TEST_SOURCES) | \
+	sed 's/\(.*\)\.o[ :]*/obj\/\1.o : /g' > Makefile.depend; \
+	test -s Makefile.depend || rm -f Makefile.depend
+endif
+
+.PHONY : all Makefile.depend
+

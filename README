@@ -1,0 +1,25 @@
+This is release 1.22 of XParam, a portable, extensible tool for
+general-purpose object serialization and deserialization in C++,
+mainly intended for parsing command-line parameters and passing
+objects between applications.
+
+Please send bug reports to the bug tracker at xparam.sourceforge.net.
+
+About This Distribution ==========================================
+
+The latest official XParam release is available via anonymous FTP
+from xparam.sourceforge.net.
+
+Building and installing this distribution gives you:
+libxparam -- The XParam library.
+<xparam.h> and <xparam_extend.h> --- The XParam header files.
+doc/* -- Complete documentation of XParam in HTML format.
+examples/* -- Example code.
+tests/* -- Regression testing code.
+
+IMPORTANT NOTE:
+In order to run the example code, you should set your XPARAM_CLASSPATH
+environment variable to include the path of examples/classpath. For
+a complete explanation of the XPARAM_CLASSPATH environment variable
+refer to the HTML documentation.
+

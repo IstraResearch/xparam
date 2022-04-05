@@ -1,0 +1,12 @@
+all : simple
+
+simple : simple.o
+	@CXX@ simple.o -lxparam -o $@
+
+simple.o : simple.cpp Makefile
+	@CXX@ -c -o $@ simple.cpp
+
+clean :
+	-rm -f simple simple.o
+
+.PHONY : all clean

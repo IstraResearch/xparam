@@ -1,0 +1,194 @@
+<HTML>
+<HEAD>
+<TITLE>
+XParam - General-Purpose Object Serialization Framework for C++
+</TITLE>
+</HEAD>
+<BODY>
+<CENTER>
+<H1>
+XParam - General-Purpose Object Serialization Framework for C++
+</H1>
+<H2>
+The XParam Library User's Guide
+</H2>
+</CENTER>
+<H3>
+Usage Examples
+</H3>
+Next: <A HREF="faq.html">Frequently Asked Questions</A><BR>
+Previous: <A HREF="installation.html">Installing XParam</A><BR>
+Up: <A HREF="index.html">Table of Contents</A><BR>
+<P>
+Contents:
+<OL>
+<LI><A HREF="#introduction">Introduction</A></LI>
+<LI><A HREF="#simpleexample">Simple Example</A></LI>
+<LI><A HREF="#involvedexample">Involved Example</A></LI>
+<LI><A HREF="#calculatorexample">Calculator Example</A></LI>
+</OL>
+<P>
+<H4><A NAME="introduction">Introduction</A></H4>
+The following sections describe three examples of XParam programs
+in order of increasing sophistication. The full compileable sources
+and run-able binaries can be found in the "examples" directory of the
+XParam distribution. If you've installed the xparam-devel RPM, you
+will find these examples in a tar ball, in the same directory as
+this documentation.
+<P>
+The files referenced by this HTML have been abbreviated, for
+clarity, by omitting a large part of the license notice at the beginning
+of each. The code, however, is still protected by the same license as the
+rest of XParam. Other than this change, the files are identical to those
+used in the actual working code.
+<P>
+<H4><A NAME="simpleexample">Simple Example</A></H4>
+This little C++ program demonstrates a very simple usage of XParam.
+It asks for two inputs, an integer called "num" and a string
+called "name". "num" is a number you're guessing; "name" is your
+name. The program reads this input from the command line. Next
+it reads an integer from the file
+<A HREF="doc_examples/my_number.txt">my_number.txt</A> and sees whether
+you guessed too high or too low. Finally, the program outputs
+"my_number" as a ParamSet, in the format recognizeable by other
+XParam programs, which is also human-readable.
+<P>
+You can execute this program with no parameters, and will receive
+the reply that "num" is a required parameter. You can input "num"
+only, in which case the program will enter the default name:
+"John Doe", or you can enter both parameters. You can also
+execute this program with the help-request option:
+<P>
+<TT>
+~&gt; simple !
+</TT>
+<P>
+for example, and this will give you all the parameter information.
+<P>
+One particularly amusing way to execute this program is by using
+<P>
+<TT>
+~&gt; simple num=@my_number.txt
+</TT>
+<P>
+This will redirect "num" to be read from "my_number.txt", which,
+of course, will lead to your number being exactly correct.
+<P>
+The full code can be found in
+<A HREF="doc_examples/simple.cpp">simple.cpp</A>. 
+<H4><A NAME="involvedexample">Involved Example</A></H4>
+A more involved example is the example of initializing an entire
+drawing, using a polymorphic Shape pointer. This example is given
+in <A HREF="doc_examples/involved.cpp">involved.cpp</A>.
+The generic shape interface is given in
+<A HREF="doc_examples/shapes.h">shapes.h</A> and its
+implementation is in
+<A HREF="doc_examples/shapes.cpp">shapes.cpp</A>. The
+interface is registered in
+<A HREF="doc_examples/reg_shapes.cpp">reg_shapes.cpp</A>.
+<P>
+You can execute this program using
+<P>
+<TT>
+~&gt; bin/involved @data/my_shape.txt
+</TT>
+<P>
+This will load the shape information from the file
+<A HREF="doc_examples/my_shape.txt">my_shape.txt</A>.
+The shape information itself uses class "Circle", which has not been
+defined in "shapes.h". Consequently, XParam will dynamically load
+the dynamic link library that was compiled from the
+files <A HREF="doc_examples/circle.cpp">circle.cpp</A> and
+<A HREF="doc_examples/reg_circle.cpp">reg_circle.cpp</A>
+(the command to do so is in
+<A HREF="doc_examples/circle.xpn">circle.xpn</A>).
+These files implement and register the circle class, whose interface appears in
+<A HREF="doc_examples/circle.h">circle.h</A>.
+<P>
+This program demonstrates parameter passing with user-defined
+classes and dynamic loading. For it to work, you must make sure
+that environment variable XPARAM_CLASSPATH is set, and that the
+path of <A HREF="doc_examples/circle.xpn">circle.xpn</A>
+appears in it. 
+<P>
+Note: XParam does not currently support dynamic loading in Windows,
+so for the example to work in Windows you will have to link in the
+files <A HREF="doc_examples/circle.cpp">circle.cpp</A> and
+<A HREF="doc_examples/reg_circle.cpp">reg_circle.cpp</A>
+statically.
+<P>
+<H4><A NAME="calculatorexample">Calculator Example</A></H4>
+This program demonstrates an interactive usage of streams. The
+main program code appears in
+<A HREF="doc_examples/calculator.cpp">calculator.cpp</A>.
+This is all the code you need to program a calculator in XParam,
+because all the parsing is done by XParam for you. However, you
+still need to program classes for the different arithmetic
+operations. These classes appear in
+<A HREF="doc_examples/functions.h">functions.h</A> and
+<A HREF="doc_examples/functions.cpp">functions.cpp</A>.
+They are registered into XParam in
+<A HREF="doc_examples/reg_functions.cpp">reg_functions.cpp</A>.
+With these files alone, this is already a functioning calculator.
+<P>
+However, we also wanted to demonstrate that the calculator is easily
+extendable. By adding the files
+<A HREF="doc_examples/mathfunc.h">mathfunc.h</A>,
+<A HREF="doc_examples/reg_mathfunc.cpp">reg_mathfunc.cpp</A> and
+<A HREF="doc_examples/mathfunc.xpn">mathfunc.xpn</A> we
+managed to add two functions, "sqrt" and "ln", which are loaded
+dynamically when needed.
+<P>
+The program is a calculator, working on doubles, that supports the
+functions "add", "sub", "mul" and "div" (as well as "sqrt" and "ln").
+It reads its input as an input object stream from the standard input
+and outputs its output as an output object stream to the standard
+output. Errors go to the standard error. The calculator supports
+commands that look like this: "mul(5,add(4,2))". This input will
+cause it to output "30.0", because 5*(4+2)=30. The calculator also
+supports variables. use "def(var1,13)" to define "var1" to be "13".
+Variable names are general strings. To use the variable, simply use
+its name: "sub(var1,8)" will output "5.0". To exit the calculator,
+simple truncate the input stream (^D in Unix or ^Z under Windows).
+<P>
+Another thing you can do is import an object, by using the redirection
+operator. A single object may contain many variable definitions. This
+is done by placing them between brackets. Use "@data/constants.dat" to
+import Pi and E from
+<A HREF="doc_examples/constants.dat">constants.dat</A>,
+for example.
+<P>
+Calculator also demonstrates another use-case for paramsets. Though
+there is no command-line input needed for the calculator, it
+nevertheless uses a paramset to read the command line. This allows
+the calculator to give usage instructions with the "!" directive,
+as well as help on specific functions.
+<P>
+The main thing to note about the calculator is that no concessions
+had to be made regarding its interface (with the exception that it
+has to use functions instead of operators), because of the use of
+XParam. Correct design of the class hierarchy it uses makes it possible
+for you to write "15" and it to be accepted as a number, "max" and it
+to be accepted as a variable, "[ def(one,1), def(two,2) ]" and for
+that to be accepted as a list of definitions, a single redirection
+to import many variables, any format of double to be readable,
+usage of "div" and "sqrt", even though these are functions that already
+have a meaning in C++, and so on. On the output side, the
+interface provides output as soon as you finish writing an expression,
+it outputs a stream of XParam doubles, readable by other
+XParam-supporting programs,
+when you input a calculation, and nothing when you input a definition
+or a list of definitions - these were all design goals.
+<P>
+The class hierarchy in the calculator program makes XParam implicitly
+convert values to the type you need them in, in order for the user
+not to have to be at all aware of the existence of classes such as
+<TT>ArithValue</TT>, <TT>Expression</TT> and <TT>MultiDef</TT>. She
+will only ever encounter them in error messages.
+<P>
+Next: <A HREF="faq.html">Frequently Asked Questions</A><BR>
+Previous: <A HREF="installation.html">Installing XParam</A><BR>
+Up: <A HREF="index.html">Table of Contents</A><BR>
+</BODY>
+</HTML>
+

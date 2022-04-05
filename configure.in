@@ -1,0 +1,167 @@
+AC_INIT(lib/sources/DynamicLoaderLexer.cpp)
+
+OLD_CXXFLAGS="$CXXFLAGS"
+AC_ARG_ENABLE(cxxflags, [
+--disable-cxxflags  The configuration variable CXXFLAGS will be taken
+                    directly from the environment. (default)
+--enable-cxxflags   The configuration variable CXXFLAGS will be determined
+                    by "configure" if it is not set by the environment.
+], [
+  if test "x${enableval}" = xno
+  then CXXFLAGS="$OLD_CXXFLAGS"
+  fi ], CXXFLAGS="$OLD_CXXFLAGS")
+dnl test for request to determine CXXFLAGS automatically.
+
+
+AC_PROG_CXX
+AC_PATH_PROG(LDCONFIG,ldconfig,ldconfig,/sbin:$PATH)
+AC_LANG_CPLUSPLUS
+AC_PROG_INSTALL
+AC_PATH_PROG(INSTALL_INFO,install-info,install-info,/sbin:$PATH)
+AC_PROG_MAKE_SET
+AC_MSG_CHECKING(for long long)
+AC_TRY_COMPILE(,long long l;,LONG_LONG=yes,[
+CPPFLAGS="-DNO_LONG_LONG $CPPFLAGS"; LONG_LONG=no])
+AC_MSG_RESULT($LONG_LONG)
+AC_MSG_CHECKING(for long double)
+AC_TRY_COMPILE(,long double d;,LONG_DOUBLE=yes,[
+CPPFLAGS="-DNO_LONG_DOUBLE $CPPFLAGS"; LONG_DOUBLE=no])
+AC_MSG_RESULT($LONG_DOUBLE)
+dnl Could have used AC_C_LONG_DOUBLE, which defines variable HAVE_LONG_DOUBLE
+AC_MSG_CHECKING(if "before" returns int)
+AC_TRY_COMPILE([
+#include<typeinfo>
+typedef int (std::type_info::*ifi)(const std::type_info&) const;
+void g(ifi h) {}
+],g(&std::type_info::before);,CPPFLAGS="-DBEFORE_IS_INT $CPPFLAGS"; res=yes,[
+res=no])
+AC_MSG_RESULT($res)
+dnl AC_MSG_CHECKING(if map needs default ctor)
+dnl AC_TRY_COMPILE([
+dnl #include<map>
+dnl class A { public: A(int) {} };
+dnl bool operator<(const A&,const A&) { return true; }
+dnl ],
+dnl changequote(<<, >>)dnl
+dnl <<std::map<int,A> b; b[7]=8;>>, res=no
+dnl changequote([, ])dnl
+dnl ,CPPFLAGS="-DMAP_NEEDS_DEFAULT_CTOR $CPPFLAGS" res=yes)
+dnl AC_MSG_RESULT($res)
+AC_MSG_CHECKING(for explicit template function arguments)
+AC_TRY_COMPILE(template<class T> T a(){return 7;},a<int>();,res=yes,[
+CPPFLAGS="-DNO_EXPLICIT_TEMPLATE_FUNC_ARGS $CPPFLAGS" res=no])
+AC_MSG_RESULT($res)
+AC_MSG_CHECKING(for numeric_limits)
+AC_TRY_COMPILE([
+#include <limits>
+] ,std::numeric_limits<float>::quiet_NaN();,res=yes,[
+CPPFLAGS="-DNO_LIMITS $CPPFLAGS" res=no])
+AC_MSG_RESULT($res)
+AC_MSG_CHECKING(for std::min)
+AC_TRY_COMPILE([
+#include<algorithm>
+],[std::min(0,1);],res=yes,CPPFLAGS="-DNO_MIN $CPPFLAGS" res=no)
+AC_MSG_RESULT($res)
+AC_TRY_CPP([
+#include<sstream>
+],res=yes,CPPFLAGS="-DNO_SSTREAM $CPPFLAGS" res=no)
+AC_MSG_CHECKING(for sstream)
+AC_MSG_RESULT($res)
+AC_MSG_CHECKING(for template friends)
+AC_TRY_COMPILE([
+class B;
+template<class T> class A { B b; public: void y(void){b.x();} };
+class B { void x(void){} template<class T> friend class A; };
+],A<int> a; a.y();,res=yes,CPPFLAGS="-DNO_TEMPLATE_FRIENDS $CPPFLAGS" res=no)
+AC_MSG_RESULT($res)
+AC_CHECK_PROG(CAN_DEPEND,sed,yes,no)
+dnl In order to use "make depend" we need both "sed" and "c++ -M".
+dnl Here we check for the former.
+
+if test $CAN_DEPEND = yes; then
+  SAVED_CPPFLAGS="$CPPFLAGS"
+  CPPFLAGS="$CPPFLAGS -M"
+  AC_MSG_CHECKING(for preprocessor -M directive)
+  AC_TRY_CPP(void f(){},CAN_DEPEND=yes,CAN_DEPEND=no)
+  AC_MSG_RESULT($CAN_DEPEND)
+  CPPFLAGS="$SAVED_CPPFLAGS"
+fi
+
+dnl Here we check for the latter
+
+AC_CHECK_LIB(dl,dlopen,DYNAMIC_AVAILABLE=true,DYNAMIC_AVAILABLE=false)
+AC_ARG_ENABLE(priv-includes, [
+--enable-priv-includes[=PATH]  Place the XParam include files that should not
+                               be used directly, under a private path. Default
+                               is path \"xparam\" under the include directory.
+                               Set alternate relative path to override.
+--disable-priv-includes        Place all XParam include files under the same
+                               include directory.
+], [
+  if test "x${enableval}" = xno; then priv_includes="."; else
+  if test "x${enableval}" = xyes; then priv_includes="xparam"; else
+  if test "x${enableval}" = x; then priv_includes="xparam"; else
+  priv_includes=${enableval}
+  fi; fi; fi ],priv_includes="xparam")
+dnl test for a relative path request.
+
+AC_ARG_ENABLE(dynamic, [
+--enable-dynamic    Enable dynamic loading, if possible. (default)
+--disable-dynamic   Disable dynamic loading.
+], [
+  if test "x${enableval}" != xno -a $DYNAMIC_AVAILABLE = true
+  then LIBS="-ldl $LIBS"; dynamic=dl
+  else CPPFLAGS="-DNO_DYNAMIC_LOADING $CPPFLAGS"; dynamic=no_dl
+  fi ],[
+  if test $DYNAMIC_AVAILABLE = true
+  then LIBS="-ldl $LIBS"; dynamic=dl
+  else CPPFLAGS="-DNO_DYNAMIC_LOADING $CPPFLAGS"; dynamic=no_dl
+  fi ])
+dnl test for a dynamic loading disable request.
+
+AC_ARG_ENABLE(explicit-init, [
+--enable-explicit-init   No registration will take place until a call to
+                         xparam_init() is made.
+--disable-explicit-init  No call to xparam_init() is necessary. (default)
+], [
+  if test "x${enableval}" = xyes
+  then CPPFLAGS="-DXPARAM_EXPLICIT_INIT $CPPFLAGS"
+  fi ])
+dnl test for request to force an explicit init.
+
+AC_ARG_ENABLE(config-examples, [
+--enable-config-examples   Configure XParam's examples. (default)
+--disable-config-examples  Skip the configuration of the "examples" subdir.
+], [ if test "x${enableval}" = xyes
+then recurse="examples"; fi ], recurse="examples")
+dnl test for request to inhibit configuration of the examples.
+
+XPARAM_INCLUDE_FILES=`echo lib/xparam/*.h`
+dnl create list of header files to install.
+
+XPARAM_INFO_FILES=`echo doc/xparam.info*`
+dnl create list of info files to install
+
+AC_SUBST(LDCONFIG)
+dnl substitue path for ldconfig
+AC_SUBST(priv_includes)
+dnl substitute user-defined value priv_includes.
+AC_SUBST(dynamic)
+dnl substitute user-defined value dynamic.
+AC_SUBST(LONG_LONG)
+dnl substitute long long availability.
+AC_SUBST(LONG_DOUBLE)
+dnl substitute long double availability.
+AC_SUBST(XPARAM_INCLUDE_FILES)
+dnl substitute header file list to install.
+AC_SUBST(XPARAM_INFO_FILES)
+dnl substitute info file list to install.
+AC_SUBST(CAN_DEPEND)
+dnl substitute availability of dependency rebuild
+AC_SUBST(INSTALL_INFO)
+dnl substitute install-info program
+
+AC_CONFIG_SUBDIRS(${recurse})
+
+AC_OUTPUT(Makefile lib/Makefile lib/Makefile.deprule tests/Makefile tests/Makefile.deprule lib/pub_include/xparam.h lib/pub_include/xparam_extend.h)
+

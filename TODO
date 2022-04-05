@@ -1,0 +1,15 @@
+* URLs
+* namespace support (auto-using with ambiguity resolution).
+* more informative parser error handling (more context)
+* aliases
+* interface for not copying subobjects in printing functions
+* lexer macros
+* variable references
+* ParamSet variables not referencing real variables
+* other error reporting schemes (prints)
+* ambiguity resolution with NULL matching a pointer type only (do we want this ?)
+* parser support (and canonical name mapping) for template parameters that aren't types
+  i.e. matrix<3,4>
+* unloading of dynamically loaded libraries (when?)
+* Option for echoing the value of values input (especially from command line).
+

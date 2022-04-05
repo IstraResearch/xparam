@@ -1,0 +1,25 @@
+Known Bugs:
+===========
+1) The calculator creates the illusion that it calculates functions, when
+   infact it only initializes objects. Terms such as "sqrt(ln(E))" are really
+   handled as 'find the best path for initializing a "sqrt" object using a
+   "ln" object as a parameter', etc. The way this is done is by converting
+   the "ln" object into an "ArithValue" object, and then into a "sqrt".
+     For this reason, it is possible to confuse the calculator by consecutive
+   calls to the same function: Terms such as "add(add(4,3))" will not be
+   evaluated as an error. This example will yield "7". Terms such as
+   "sqrt(sqrt(256))" will be evaluated as though only one "sqrt" is there.
+   The result in this case is 16, not 4.
+     This is because XParam considers applying the copy constructor a better
+   choice than converting back and forth to an "ArithValue".
+     It is not possible to work around this problem by overwriting the
+   copy constructor, because XParam uses the copy constructor for much of its
+   own housekeeping. A concrete class without a reasonable copy constructor
+   will not function well in XParam.
+
+     The calculator is given here as an example of using XParam in an
+   interactive context, not in order to give the impression that calculators
+   should be programmed with XParam. In a real-life context of using XParam
+   this problem virtually never arises. In a real-life need of a calculator,
+   let us recommend "bc".
+

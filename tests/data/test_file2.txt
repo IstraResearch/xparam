@@ -1,0 +1,3 @@
+a=duckling(7)
+b=[duck(),duckling(8)]
+

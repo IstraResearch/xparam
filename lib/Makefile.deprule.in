@@ -1,0 +1,11 @@
+XPARAM_SOURCES = $(wildcard sources/*.cpp)
+
+all : Makefile.depend
+
+Makefile.depend :
+	set -e; @CXX@ @CPPFLAGS@ -M -Iantlr $(XPARAM_SOURCES) | \
+	sed 's/\(.*\)\.o[ :]*/obj\/\1.o : /g' > Makefile.depend; \
+	test -s Makefile.depend || rm -f Makefile.depend
+
+.PHONY : all Makefile.depend
+

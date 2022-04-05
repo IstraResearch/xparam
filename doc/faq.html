@@ -1,0 +1,268 @@
+<HTML>
+<HEAD>
+<TITLE>
+XParam - General-Purpose Object Serialization Framework for C++
+</TITLE>
+</HEAD>
+<BODY>
+<CENTER>
+<H1>
+XParam - General-Purpose Object Serialization Framework for C++
+</H1>
+<H2>
+The XParam Library User's Guide
+</H2>
+</CENTER>
+<H3>
+Frequently Asked Questions
+</H3>
+Next: <A HREF="conversions.html">Appendix: Conversion Rules</A><BR>
+Previous: <A HREF="examples.html">Usage Examples</A><BR>
+Up: <A HREF="index.html">Table of Contents</A><BR>
+<P>
+Contents:
+<OL>
+<LI><A HREF="#license">XParam is great, but I'm not sure if your license allows me to use it in my product.</A></LI>
+<LI><A HREF="#binaries">I've downloaded XParam, but I can't find the library anywhere. What should I do?</A></LI>
+<LI><A HREF="#link1">XParam doesn't compile right for me: it complains that it doesn't know what extract&lt;T&gt; and what make_value_copy&lt;T&gt; are, for a class T that I wrote.</A></LI>
+<LI><A HREF="#link2">Oh, wait! I've figured out why it doesn't find extract and make_value_copy. You forgot to #include "xpv_facade_imp.h"!</A></LI>
+<LI><A HREF="#link3">XParam doesn't compile right for me: it complains that it doesn't know what extract&lt;T&gt; and what make_value_copy&lt;T&gt; are, where T is a standard C++/XParam class.</A></LI>
+<LI><A HREF="#segmentation">What kind of library are you selling here? I did everything just like you said, and XParam still breaks on a Segmentation Fault as soon as I try to use it!</A></LI>
+<LI><A HREF="#compile1">XParam looks like a great library, and I'm trying to use it in this project of mine, where I've got an inheritance hierarchy nine classes deep, with multiple inheritance, abstract interfaces, virtual inheritance, and conversions between map types and vector types, and I can't get it to work. Is it possible that XParam doesn't support these?</A></LI>
+<LI><A HREF="#compile2">Help! I installed XParam on a ### computer running an ### operating system, with a ### compiler, and it doesn't compile right/link right/install properly/the examples don't work/give me lots of warning messages.</A></LI>
+<LI><A HREF="#onefile">Is there any way to get XParam's documentation as a single HTML file?</A></LI>
+<LI><A HREF="#feature1">There's this nifty feature that I really need XParam to support. Can you put it in?</A></LI>
+<LI><A HREF="#feature2">I want XParam to be able to solve my algebra homework. Are you going to add this feature any time soon?</A></LI>
+<LI><A HREF="#help">How can I help XParam?</A></LI>
+</OL>
+<P>
+<H4><A NAME="license">XParam is great, but I'm not sure if your license allows me to use it in my product.</A></H4>
+Here's the good news: the XParam license doesn't restrict anybody from using
+the library. If all you want is to link in with the XParam library and/or
+include the XParam header files into your program, then XParam's license
+does not restrict you at all. You can use XParam in any program, including
+commercial, non-free, products. You don't owe us money for it, nor even an
+acknowledgement (though we generally think it would be a nice thing if you'd
+mention us somewhere in the documentation).
+<P>
+XParam's license is GPL with an exemption. The exemption is that
+programs are not considered derivative works of XParam simply because they
+are linked in with the library. So, if that's all you're doing, the license
+simply does not apply to you, and you're free to do whatever you want. This
+is the case if you're a simple user of the library, a programmer of
+XParam-using programs, or even a registrator of new classes into XParam.
+<P>
+If, on the other hand, what you want to do is to add new features to XParam,
+fix an XParam bug, make XParam work better, or do any other activity that
+requires modification of the XParam source files (which includes the
+cpp files, header files, parser files, make files, project files, Perl
+scripts, etc., that come as part of the XParam distribution), then you are
+creating a derivative work of XParam, and that means that the XParam license
+binds you as though it was GPL. Chiefly, this means that you must make the
+new sources, with
+whatever changes you make, freely available under a license that is at least
+as restrictive as the XParam license. (Both GPL and LGPL fall under this
+category.) You must note the fact that these are not the original sources,
+that you are the one to change them, and where the original, unmodified
+sources can be found.
+<P>
+The simplest way to do all this is to mail us the relevant patch file
+(or its equivalent),
+and we'll do the rest. This can be done through our SourceForge homepage.
+<P>
+We chose the XParam license after reviewing many alternative licenses and
+finding them too restrictive. We wanted a license that would allow everybody
+to use the library. We thank Richard Stallman for pointing us to GNU's GUILE,
+that uses an analogous license.
+<P>
+<H4><A NAME="binaries">I've downloaded XParam, but I can't find the library anywhere. What should I do?</A></H4>
+Up until version 1.21 of XParam, this library only had a source distribution.
+For this reason, when you downloaded it, you got cpp files, header files, and
+virtually nothing that was compiled. Certainly, there was no compiled library
+there to be found.
+For some downloaders, who are more familiar with precompiled packages, such
+as RPMs, DEBs and the like, this came as something of a surprise.
+<P>
+What you want to do with a source distribution is follow the instructions
+given in the "Installing XParam" section of this manual. They will tell you
+exactly how to get from the sources to the binaries you want. You will,
+however, need to have some basic tools, such as a C++ compiler, installed.
+<P>
+Starting version 1.21, XParam also comes with an RPM, so it is no longer
+necessary to compile it on your computer. In the future, we hope that more
+and more packages will make use of this RPM, utilizing XParam as an I/O
+platform for their own packages. We know of some such packages that are
+currently being developed.
+<P>
+<H4><A NAME="link1">XParam doesn't compile right for me: it complains that it doesn't know what extract&lt;T&gt; and what make_value_copy&lt;T&gt; are, for a class T that I wrote.</A></H4>
+<H4><A NAME="link2">Oh, wait! I've figured out why it doesn't find extract and make_value_copy. You forgot to #include "xpv_facade_imp.h"!</A></H4>
+<P>
+If you get a linker error, complaining that XParam does not find these two
+template functions, what your problem is likely to be, is that you forgot to
+link some files in with your project. Typically, you forgot to link in the
+files that register class T.
+<P>
+And, no. We didn't forget to include "xpv_facade_imp.h". The program is
+supposed to compile, link and run perfectly without this inclusion. If
+you try to put it in manually, you will only be making things worse. The
+omission of this header file is a well know trick, meant to speed up
+compilation. This is only supposed to cause you trouble if your C++ compiler
+is extremely old, in which case it will no doubt also lack several other
+features needed by XParam.
+<P>
+<H4><A NAME="link3">XParam doesn't compile right for me: it complains that it doesn't know what extract&lt;T&gt; and what make_value_copy&lt;T&gt; are, where T is a standard C++/XParam class.</A></H4>
+Hmmm... If it's a standard class, this is a different problem altogether.
+It may be that you didn't link in all the source files of the library when
+you built it in the first place, or that the relevant function calls were
+omitted by your compiler.
+<P>
+One possible cause for this problem is that you have two different versions of
+XParam on your computer, and are linking against a different copy of the
+library than you intend. For example, you may have downloaded a local copy of
+version 1.22, but are still linking against your RPM of version 1.21. Use
+explicit link and include paths to make sure you are compiling and linking
+with the intended copy of the library.
+<P>
+If you've checked these possibilities already, and the problem seems to be
+elsewhere,
+try compiling with -DXPARAM_STATIC_LIBRARY, and if that doesn't work either,
+look at the file xp_config.h, and see if there are other configuration
+options that may be applicable in your case.
+<P>
+If the problem persists, tell us about it. Also contact us if you found out
+that your compiler needs certain special tweaks to make XParam run on
+it. If we can make these tweaks become part of the package, we'll probably
+do so for the next release.
+<P>
+<H4><A NAME="segmentation">What kind of library are you selling here? I did everything just like you said, and XParam still breaks on a Segmentation Fault as soon as I try to use it!</A></H4>
+If you run XParam and it throws a segmentation fault at you, it's probably
+because you forgot that XParam uses exceptions. Many XParam functions, such
+as "xparam_init()" and "ParamSet::input()", can and do throw exceptions, when
+they detect user errors.
+<P>
+If you neglect to surround XParam's calls in a "try" block, you can very
+easily find yourself with an unhandled exception. Many polite compilers exit
+from the program in such a case, notifying the user of an unhandled exception.
+Other, less polite compilers simply make your program crash on a segmentation
+fault.
+<P>
+One of the features we want to add to XParam is a work mode in which XParam
+errors will be reported by means other than exceptions. (For example, you may
+want XParam to report errors on the standard error stream, and exit from
+your program immediately afterwards.) However, this is not
+currently supported, and we can make no guarantees nor even time
+estimates regarding when such a feature may be introduced.
+<P>
+<H4><A NAME="compile1">XParam looks like a great library, and I'm trying to use it in this project of mine, where I've got an inheritance hierarchy nine classes deep, with multiple inheritance, abstract interfaces, virtual inheritance, and conversions between map types over structs and vector types over enums, and I can't get it to work. Is it possible that XParam doesn't support these?</A></H4>
+Well, XParam does support all of these, but it takes a little time and some
+practice registering classes before you get to the proficiency level required
+to pull off something like this.
+<P>
+If you've successfully registered simple cases of all of the above, there's
+no reason you shouldn't be able to register the whole thing together. If,
+on the other hand, this is the first time you've ever tried using XParam's
+registration, we suggest you start with a few less ambitious experiments.
+<P>
+If you feel that you've tinkered with XParam long enough to know that what
+you're trying should work and doesn't, do contact us and we'll try to help.
+<P>
+Here's one tip: XParam's registrations may take considerable amounts of
+heap memory to compile. If you've got many registration calls you need to
+make, do your compiler a favor and split them into several files.
+<P>
+<H4><A NAME="compile2">Help! I installed XParam on a ### computer running an ### operating system, with a ### compiler, and it doesn't compile right/link right/install properly/the examples don't work/give me lots of warning messages.</A></H4>
+We've tested XParam on several systems. These include several generations of
+MSWindows (including several CygWin versions), several generations of RedHat,
+several generations of Debian,
+one Mandrake and one SolarisOS. We've also tried it on quite a few different
+compilers. On gcc alone we started from the 2.9s and have worked our way
+up to 3.2.
+<P>
+Of course, that's just the list of environments that we managed to test
+in-house. Our install base likely spans many other environments as well,
+and we've only received relatively few reports about environments where
+XParam doesn't behave well.
+<P>
+One thing we've learnt about the C++ language is that no two compilers share
+identical views about it, nor are there two operating systems completely
+identical in their quirks. Generally speaking, when you port XParam to a
+new environment, it may take a little tweaking to make it run exactly right.
+(It is, after all, a very compiler intensive library.) However, on the whole,
+little to no tweaking is all it generally takes. It never posed any serious
+problems. Not even when we ported it originally from Linux to Windows.
+<P>
+The XParam distribution comes with an elaborate autoconf script, meant to
+work around the most common porting pitfalls, and we are using libtool as
+a further means of making the transitions easier, but neither of these
+systems is perfect.
+<P>
+If your operating system is not listed above, this is no reason to assume
+it won't work there. Try it. If it works, let us know. If it doesn't, let
+us know, too. If it originally didn't work, and you found a way to work
+around the problem, this is doubly true.
+<P>
+As a general policy, we haven't written in XParam any piece of code for
+which we have no means of testing. We know, for example, that XParam's
+dynamic loading mechanism will probably not work well on a Digital Alpha,
+because it was designed for a 32bit operating system. We could have
+written the code, but had no way of verifying that it actually works
+correctly. In all such cases, we rely on you, the XParam developer, to
+help us make XParam work on your favorite platform.
+<P>
+<H4><A NAME="onefile">Is there any way to get XParam's documentation as a single HTML file?</A></H4>
+XParam's HTML documentation usually comes separated into several files. If,
+for some reason, it is important to you that the documentation will consist
+of a single file, you can always opt to use the SGML version
+of our documentation, which comes with the XParam package and is also
+available for separate download from our CVS (hosted by SourceForge).
+It is an SGML file conforming to the linuxdoc dtd.
+<P>
+If you must have the documentation in HTML form, you can always produce it
+from the SGML. If you have SGML-Tools installed, the command
+<P>
+<TT>
+sgml2html --split=0 xparam.sgml
+</TT>
+<P>
+will yield documentation in a single HTML file.
+<P>
+If linuxdoc converters are not available to you, you can also find all of
+XParam's documentation, in formats ranging from single-file HTMLs, through
+PostScript, to PDFs, in the "XParam-docs" tar file, available for download
+from our SourceForge homepage.
+<P>
+<H4><A NAME="feature1">There's this nifty feature that I really need XParam to support. Can you put it in?</A></H4>
+<H4><A NAME="feature2">I want XParam to be able to solve my algebra homework. Are you going to add this feature any time soon?</A></H4>
+As we mentioned before, we're programming as fast as we can, and we can't
+predict when - or even if - any particular feature will be added to XParam.
+However, if you need any particular feature from XParam, do let us know.
+We might not start working on it right away, but it will definitely boost
+its priority on our worklist.
+<P>
+If you're just interested in getting a general glimpse of what's planned in
+XParam's near future, you can take a look at the "help XParam" page on our
+homepage and at the "TODO" file in the distribution. We don't feel ourselves
+tied to either list, though, so don't be surprised if items not on either
+list supercede other, longstanding items.
+<P>
+<H4><A NAME="help">How can I help XParam?</A></H4>
+XParam is an ongoing effort. If you look at the "help XParam" page on our
+homepage, you'll get an idea of some of the things we're planning on putting
+into XParam. We are programming these as fast as we can, but any additional
+pair of hands will be invaluable help to us.
+<P>
+If you want to help us, you can simply program any of the items on the
+"help XParam" list (it's very diverse in the skills it requires). Better yet,
+you can contact us and we'll figure out together what subproject best suits
+your capabilities.
+<P>
+In fact, if you'll just program for youself the features that you most need
+for XParam, and then send them to us, that will be great. Most of the features
+XParam has today were programmed because we needed them in our projects.
+<P>
+Next: <A NAME="conversions.html">Appendix: Conversion Rules</A><BR>
+Previous: <A HREF="examples.html">Usage Examples</A><BR>
+Up: <A HREF="index.html">Table of Contents</A><BR>
+</BODY>
+</HTML>
+

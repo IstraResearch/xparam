@@ -1,0 +1,63 @@
+Version 1.01:
+  Added autoconf support.
+  Separated include files into three subdirectories:
+    pub_include - the files xparam.h and xparam_extend.h
+    xparam - files included by the files in pub_include
+    src_include - files used in compiling libxparam.a
+  By default, you should now use <xparam.h> and <xparam_extend.h>
+  instead of <xparam/xparam.h> and <xparam/xparam_extend.h>. The
+  previous method will still work, but is considered depreciated.
+
+Version 1.02:
+  Added support for user defined symbolic constants.
+
+Version 1.1:
+  Added enum support.
+  Added the ability to query parameters.
+  Added parameter set manipulators.
+  Added match-by-prefix option.
+  Added first-assignment-holds and multiple-assignment-is-error options.
+  Added the ability to import paramsets into other paramsets.
+  Added support for using constant variables as output variables in ParamSets.
+  Added regression testing.
+  Added libtool support.
+  Improved installation.
+
+Version 1.11:
+  Changed parser so reading a value requires no lookahead besides WS.
+  Added all built-in C types (including non-standard extensions).
+  More compatibility with different compilers.
+
+Version 1.2:
+  Added built-in support for std::map, std::list and std::pair.
+  Created special syntax for std::map.
+  Exported the mechanism for creating new template registration commands.
+  Changed the registration process so that registration is delayed as
+    much as possible, to avoid running code prior to main(). Optionally,
+    the user can forbid registration until a run point of her choice.
+  Added the "PENDING" directive.
+  Duplicate registration is no longer an error.
+  All Unix xp_config.h directives have been replaced by autoconf tests.
+  Assorted bug fixes and small improvements.
+
+Version 1.21:
+  Added registration command for std::set.
+  Improved registration for sequence types (vector, list).
+  Improved registration for map types (map).
+  Improved design of conversions engine.
+  Support for NaN (NaN, NaNF, NaNL)
+  Improved installation (make depend, DESTDIR, cxxflags-enable, ldconfig, etc.)
+  Added a FAQ page.
+  Added documentation in linuxdoc sgml and GNU info formats.
+  Small bug fixes and code improvements.
+
+Version 1.22:
+  Added globbing capability.
+  New "basic type": RawBytes, for space-efficient storage.
+  Now supporting a feedback stream for ParamSets.
+  New ParamSet flag: Ignore unexpected.
+  Now reporting warnings to the user, with ability to set warning level.
+  Better error reporting: MatchError
+  Default values now supported in XParam input format, as well as C++.
+  Small bug fixes, code and documentation improvements.
+

@@ -1,0 +1,169 @@
+<HTML>
+<HEAD>
+<TITLE>
+XParam - General-Purpose Object Serialization Framework for C++
+</TITLE>
+</HEAD>
+<BODY>
+<CENTER>
+<H1>
+XParam - General-Purpose Object Serialization Framework for C++
+</H1>
+<H2>
+The XParam Library User's Guide
+</H2>
+</CENTER>
+<H3>
+Introduction
+</H3>
+Next: <A HREF="user.html">The User Interface</A><BR>
+Back: <A HREF="index.html">Table of Contents</A><BR>
+Up: <A HREF="index.html">Table of Contents</A><BR>
+<P>
+XParam was initially developed as a simple object-oriented tool for
+parsing command-line parameters. However, it evolved into a general-purpose
+tool for passing objects between applications. It has also been used as a
+plug-in framework for several applications. The name "XParam" is an
+abbreviation for "Transfer of Parameters".
+<P>
+In this section, we do not attempt to teach you how to use XParam's
+capabilities. This is left to the three interface-describing sections.
+The purpose of this section is to give you an idea of what XParam
+can do, and how it can help you in every program you write.
+<P>
+If you want to pass parameters that are of type <TT>int</TT>,
+<TT>std::string</TT> or other equally basic C++ types, XParam will
+give you, out-of-the-box, a very convenient syntax:
+<P>
+<TT>
+~/bin&gt;a.out name=Mary age=17 height=1.6
+</TT>
+<P>
+Despite the fact that quotation marks around <TT>Mary</TT> and other
+type descriptors are missing, this syntax is strictly typed: nothing
+other than an integer, or something that can be converted to an
+integer, can be passed as the <TT>age</TT> parameter, for example,
+because it was defined as an integer in the <TT>a.out</TT> program.
+<P>
+XParam's strength over other parameter-handling packages, however,
+lies in its extensibility.
+As an example, suppose you have, in your program, an abstract class,
+"Shape", with "Circle", "Arc" and "Composite" as concrete classes derived
+from it, where "Circle" is a circle object, "Arc" is an arc object and
+"Composite" is a shape composed of other shapes, such as Circle and Arc.
+Suppose further that you have a "Point" class, which may also be a
+drived class from shape, such that "Circle" has a constructor describing
+the circle by its center point and its radius and "Arc" has a constructor
+describing the arc by three points along it. A "Composite" object can be
+constructed from the vector of "Shape*" objects that compose it.
+<P>
+All these objects may have been written without taking into account that they
+will be used in XParam. In fact, they may be from a third-party library that
+you want to use. XParam can be used to input these classes from the user,
+as well as pass them between applications. For the user of your program,
+who wants to input a Composite object to a drawing program, usage of
+XParam may look like this:
+<P>
+<TT>
+~/bin&gt;a.out 'my_shape=[ Circle(Point(50,50),50), Circle(Point(25,75),10),
+Circle(Point(75,75),10), Arc(Point(25,50), Point(50,25), Point(75,50)) ]'
+</TT>
+<P>
+Here, the user described a smiling face. She did this by describing
+three "Circle" objects and one "Arc" object, just as she would have
+done in a constructor call inside a C++ program. These objects were
+placed inside brackets and separated by commas to indicate the
+construction of an std::vector&lt;Shape*&gt;. (XParam can deduce the vector
+type by its elements and by its usage. In cases of ambiguity, explicit
+construction of the vector is also possible.) This vector of shapes
+is then used to construct a "Composite" object. The resulting
+"Composite" object can then be assigned to "my_shape" and later used
+in the program. "my_shape" in this example can be a "Composite"
+object, a "Composite*" object, or a "Shape*" object. However, for the
+rest of the example, we will assume that it is a "Composite".
+<P>
+Inside your program, in order to allow the user to input his Composite
+in this manner, all you need to write is the following:
+<P>
+<PRE>
+#include &lt;xparam.h&gt; // The XParam library
+#include "shapes.h" // This is where your shape classes are defined
+using namespace xParam;
+
+int main(int argc, char* argv[]) {
+  Composite my_shape;
+  ParamSet ps; // define a parameter set
+  ps &lt;&lt; iParamVar(my_shape,"my_shape"); // define variables in the set
+  ps.input(argc,argv); // parse the command line into the set
+  my_shape.draw(); // my_shape is already initialized and ready to use
+  return 0;
+}
+</PRE>
+<P>
+So far, this may seem like magic. In fact, because C++ has no
+introspection capability, XParam really does need a little bit more
+information in order to work. What it needs is a description of the
+relevant parts of the classes you want XParam to be able to work with.
+This is called the "registration code". Here is what your registration
+code for the previous example should look like:
+<P>
+<PRE>
+#include &lt;xparam_extend.h&gt;
+#include "shapes.h"
+using namespace xParam;
+
+PARAM_BEGIN_REG
+
+  PARAM_CLASS(Point);
+    param_ctor&lt;Point&gt;(ByVal&lt;int&gt;("x"),ByVal&lt;int&gt;("y"));
+
+  PARAM_ABSTRACT_CLASS(Shape);
+    param_ptr_vector&lt;Shape&gt;();
+
+  PARAM_CLASS(Circle);
+    param_inheritance(DerivedTag&lt;Circle&gt;(),BaseTag&lt;Shape&gt;());
+    param_ctor&lt;Circle&gt;(ConstRef&lt;Point&gt;("center"),ByVal&lt;int&gt;("radius"));
+
+  PARAM_CLASS(Arc);
+    param_inheritance(DerivedTag&lt;Arc&gt;(),BaseTag&lt;Shape&gt;());
+    param_ctor&lt;Arc&gt;(ConstRef&lt;Point&gt;("start"),ConstRef&lt;Point&gt;("middle"), ConstRef&lt;Point&gt;("finish"));
+
+  PARAM_CLASS(Composite);
+    param_inheritance(DerivedTag&lt;Composite&gt;(),BaseTag&lt;Shape&gt;());
+    param_ctor&lt;Composite&gt;(ConstRef&lt;std::vector&lt;Shape*&gt; &gt;("shapelist"));
+
+PARAM_END_REG
+</PRE>
+<P>
+Though this may seem like some scripting language, it's actually
+C++ code that should be linked in with the rest of your project.
+Moreover, this registration process can be done by a third party, it
+needs no knowledge of your program, and is virtually non-intrusive
+to the registered objects. (All XParam requires is that concrete
+types have copy constructors.)
+<P>
+That's all there is to it. The code presented here is all you need
+to write in order to give your shape library a convenient user-interface.
+<P>
+As you can see, usage of the XParam library can be separated into
+three parts, and the next three chapters of this user's guide are divided
+accordingly.
+The first part deals with the interface that XParam provides for the
+user of your programs. This can be found in the
+<A HREF="user.html">User Interface</A> section. Next comes the interface
+provided for the programmer. This is described in the
+<A HREF="programmer.html">Programmer Interface</A> section. Finally,
+we deal with the registration process and the interface provided for
+it. This is the <A HREF="registration.html">Registration Interface</A>
+section.
+<P>
+The rest of this user's guide is devoted to installation instructions,
+examples of XParam's usage, a FAQ page, an appendix describing XParam's exact
+conversion rules and a list of credits for contributions to XParam.
+<P>
+Next: <A HREF="user.html">The User Interface</A><BR>
+Back: <A HREF="index.html">Table of Contents</A><BR>
+Up: <A HREF="index.html">Table of Contents</A><BR>
+</BODY>
+</HTML>
+

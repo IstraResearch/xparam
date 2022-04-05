@@ -1,0 +1,192 @@
+<HTML>
+<HEAD>
+<TITLE>
+XParam - General-Purpose Object Serialization Framework for C++
+</TITLE>
+</HEAD>
+<BODY>
+<CENTER>
+<H1>
+XParam - General-Purpose Object Serialization Framework for C++
+</H1>
+<H2>
+The XParam Library User's Guide
+</H2>
+</CENTER>
+<H3>
+Installing XParam
+</H3>
+Next: <A HREF="examples.html">Usage Examples</A><BR>
+Previous: <A HREF="registration.html">The Registration Interface</A><BR>
+Up: <A HREF="index.html">Table of Contents</A><BR>
+<P>
+Contents:
+<OL>
+<LI><A HREF="#unix">Installation in Unix</A></LI>
+<LI><A HREF="#windows">Installation in Windows</A></LI>
+<LI><A HREF="#changes">Making Changes</A></LI>
+</OL>
+<P>
+<H4><A NAME="unix">Installation in Unix</A></H4>
+<UL>
+<LI>The XParam source files are available in the file
+<TT>xparam-1.22.tar.gz</TT>.
+Use <TT>tar zxvf xparam-1.22.tar.gz</TT> to uncompress and untar this file to
+where you want it. We will assume you put the XParam files under
+<TT>/usr/local/src/</TT>.</LI>
+<LI>The XParam files are under four main directories. Under <TT>lib</TT>
+you will find the code for building the library itself.
+Under <TT>examples</TT> you will find
+example programs using XParam. Under <TT>tests</TT> you will find
+regression testing code. Under <TT>doc</TT> you will find the library's
+html documentation, including this file. The tar file only contains sources
+for building the library, example code and regression testing code, and
+does not by itself contain the executables or the linkable library. Building
+XParam, according to the instructions given below, will create these
+executables and library code.</LI>
+<LI>XParam uses autoconf. Run './configure' from the main directory to
+create the library's Makefile, then run 'make install' from the
+main directory to build the library and install it. (Using 'make' will
+build the library, but will not install it.) 'make check' will run
+regression testing. 'make examples' will compile the example code.
+'make check' and 'make examples' will only work after the library is
+installed.</LI>
+<LI>Set environment variable XPARAM_CLASSPATH to include all directories
+where you want XParam to search for its '.xpn' files (separated by colons).
+To run the example programs, you will need this path to include
+<TT>/usr/local/src/xparam-1.22/examples/classpath</TT> (or the equivalent
+to reach the <TT>examples/classpath</TT> subdirectory in the distribution, if
+you untarred XParam in a directory other than <TT>/usr/local/src</TT>).</LI>
+<LI>The standard XParam installation places the file
+<TT>libxparam.so</TT> under <TT>/usr/local/lib</TT>, the XParam header
+files xparam.h and xparam_extend.h under <TT>/usr/local/include</TT>,
+and the rest of XParam's include files (which are never used directly)
+under <TT>/usr/local/include/xparam</TT>. Use the './configure' directive
+'--disable-priv-includes' if you want to install all include files in the
+same directory, or '--enable-priv-includes[=path]' to install the private
+include files to a relative path other than 'xparam'.</LI>
+<LI>Use the './configure' directive '--disable-dynamic' if you wish to
+have the dynamic loading feature disabled. This will only affect your
+system if it has dynamic loading support. Otherwise, this feature will
+be automatically disabled.</LI>
+<LI>If, for some reason, you do not want XParam to be useable until a
+certain point in your program, use --enable-explicit-init. This will cause
+XParam not to work before a call to xparam_init(). Otherwise, XParam
+registrations will all be executed on the first use of XParam in the program.
+This option is particularly useful if you are concerned that someone might
+use XParam before "main()", when you can not be sure that all registrations
+have already been initiated. Typically, xparam_init() will be the first
+line of your "main()".</LI>
+<LI>XParam's configuration can make use of environment variables such as
+LDFLAGS, CPPFLAGS and CXXFLAGS, in the normal way. However, by default,
+it does not set the -O2 and -g flags in CXXFLAGS, even if your compiler
+supports them. This is because neither speed optimization nor debug
+information is usually important for the XParam user. (After all, this is
+an I/O package.) On the other hand, these flags can slow down compilation
+considerably. To override this default behavior, and have XParam turn on
+the -O2 and -g flags if they are available, use '--enable-cxxflags'
+when running './configure'.</LI>
+<LI>The examples subdirectory of XParam can be configured separately from
+the rest of the package. It is equipped with its own configure script.
+It can be executed using "examples/configure". By default, configuring
+the package also configures the examples subdirectory, using equivalent
+parameters. If you want to configure the library without configuring its
+examples, use the ./configure option --disable-config-examples.</LI>
+<LI>Make sure that the directory where you installed the XParam library
+is a trusted directory for loading shared objects. (See "man ldconfig"
+for details.)</LI>
+<LI>If, while running 'make install', environment variable DESTDIR is set,
+XParam will install to that directory. That is, any file that is meant to
+be installed to the directory /X will, instead, be installed to DESTDIR/X.
+This is useful for checking XParam's installation without actually installing.
+Running 'make check' with DESTDIR still set to the same value will run
+the XParam tests on the copy of the installation based in DESTDIR. Note
+that installing with DESTDIR causes no 'ldconfig' command to be executed.
+(See ldconfig's documentation for details.) If you install to DESTDIR,
+you should subsequently copy all files created in DESTDIR's subdirectory
+to their proper places and run ldconfig to complete the installation.
+This is not necessary when installing directly to the final destination.</LI>
+<LI>You have now finished the installation of XParam. All
+the usage instructions are in the <TT>doc</TT> library, including how to
+run the programs under <TT>examples</TT> to verify that the installation
+was successful.</LI>
+</UL>
+
+<H4><A NAME="windows">Installation in Windows</A></H4>
+<UL>
+<LI>The XParam source files are available in the file
+<TT>xparam-1.22.tar.gz</TT>.
+Use WinZip or similar utility to uncompress and untar this file to
+where you want it.</LI>
+<LI>The XParam files are under four main directories. Under <TT>lib</TT>
+you will find the code for building the library itself.
+Under <TT>examples</TT> you will find
+example programs using XParam. Under <TT>tests</TT> you will find
+regression testing code. Under <TT>doc</TT> you will find the library's
+html documentation, including this file. The tar file only contains sources
+for building the library, example code and regression testing code, and
+does not by itself contain the executables or the linkable library. Building
+XParam, according to the instructions given below, will create these
+executables and library code.</LI>
+<LI>Load the workspace file <TT>xparam.dsw</TT> (for Visual C++ 6.0).
+It contains all the projects and settings for compiling the XParam library
+and examples with Visual C++ 6.0 - just run the <i>build</i> command on your
+selected project.<br>
+When you want to create your own project using XParam, you should make the 
+following project settings:
+<UL>
+<LI>Turn on RTTI (Under the <i>C/C++</i> tab, <i>C++ Language</i> category)</LI>
+<LI>Add the include directory for XParam's include files (Under the
+<i>C/C++</i> tab, <i>Preprocessor</i> category, <i>Additional include
+directories</i> field). You should enter here the directory <TT>lib/xparam</TT>
+in the XParam distribution.</LI>
+<LI>Link with the XParam library. To do this go to the <i>Link</i> tab,
+<i>input</i> category. Add <TT>xparam.lib</TT> at the end of the field 
+<i>Object/library modules</i>, and add the path to the XParam library in the 
+<i>Additional library path</i> field</LI> (If you've used the supplied project
+settings to compile the library, this entry should be <TT>lib/bin</TT>
+relative to the root of the XParam distribution).
+</UL>
+<LI>If your non-Unix compiler is not Visual C++, there may be certain
+features that XParam uses that your compiler might not support. Consult the
+XParam header file <TT>xp_config.h</TT> in order to decide on the correct
+compilation flags that will make XParam work around the missing features.</LI>
+</LI>
+<LI>You have now finished the installation of XParam. All
+the usage instructions are in the <TT>doc</TT> library, including how to
+run the programs under <TT>examples</TT> to verify that the installation
+was successful.</LI>
+</UL>
+
+<H4><A NAME="changes">Making Changes</A></H4>
+All that was said above refers to the library's ready-to-compile sources.
+If you want to make changes in these sources, you should take the following
+into account:
+<UL>
+<LI>The XParam parser and lexer were written using a parser generator called
+ANTLR. The descriptions of the parser and lexer appear under directory
+<TT>lib/meta_sources/*.g</TT>. In order to re-create the parser, you must
+first install ANTLR. ANTLR is freeware, available from www.antlr.org.
+ANTLR is
+written in Java, so you must also have Java installed, in order to run it.</LI>
+<LI>Use <TT>lib/meta_sources/update_parsers.pl</TT> to run ANTLR, because
+XParam has to tweak the ANTLR output before it can use the files.</LI>
+<LI>XParam's ready-to-compile version can handle constructors of only up
+to 13 parameters. If you wish to exceed this limit,
+simply run <TT>lib/meta_sources/ctor_code_gen.pl</TT> with the upper
+limit you desire as a parameter. (See <TT>README.txt</TT>, in the same
+directory for further details.)</LI>
+<LI>The <TT>.pl</TT> files in <TT>lib/meta_sources</TT> are Perl files.
+In order to run them, you must have a Perl interpreter installed.</LI>
+<LI>If you write any patch, bug-fix or extension to XParam, make sure you
+send us a copy. Simply <TT>diff</TT> your version with ours, and send
+the resulting patch-file to the tracker at <TT>xparam.sourceforge.net</TT>.
+</UL>
+
+
+Next: <A HREF="examples.html">Usage Examples</A><BR>
+Previous: <A HREF="registration.html">The Registration Interface</A><BR>
+Up: <A HREF="index.html">Table of Contents</A><BR>
+</BODY>
+</HTML>
+

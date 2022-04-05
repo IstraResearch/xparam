@@ -1,0 +1,190 @@
+<HTML>
+<HEAD>
+<TITLE>
+XParam - General-Purpose Object Serialization Framework for C++
+</TITLE>
+</HEAD>
+<BODY>
+<CENTER>
+<H1>
+XParam - General-Purpose Object Serialization Framework for C++
+</H1>
+<H2>
+The XParam Library User's Guide
+</H2>
+</CENTER>
+<H3>
+Appendix: Conversion Rules
+</H3>
+Next: <A HREF="credits.html">Credits for Contributions to XParam</A><BR>
+Previous: <A HREF="faq.html">Frequently Asked Questions</A><BR>
+Up: <A HREF="index.html">Table of Contents</A><BR>
+<P>
+Contents:
+<OL>
+<LI><A HREF="#introduction">Introduction</A></LI>
+<LI><A HREF="#weights">The Weights</A></LI>
+<LI><A HREF="#tentative">Tentative Types</A></LI>
+<LI><A HREF="#lists">List Comparisons</A></LI>
+</OL>
+<P>
+<H4><A NAME="introduction">Introduction</A></H4>
+In using XParam, it is common to utilize the fact that not all conversions
+must be explicitly requested. Often, XParam performs implicit
+conversions in order to execute a command.
+The following is a description of XParam's implicit conversion rules.
+It is not intended to be the definitive guide to the rules. Some rules
+may be a little more complex than they are presented here. This
+appendix is meant, however, to help you understand better why
+XParam chooses one conversion path over another, for this to assist
+you in controlling its behavior, whether as a user or as a registrator.
+<P>
+<H4><A NAME="weights">The Weights</A></H4>
+As C++, XParam recognizes that not all conversions are alike.
+Certain conversions, such as one from <TT>bool</TT> to <TT>int</TT>,
+look more appealing than others, such as from <TT>double</TT> to <TT>int</TT>.
+This is expressed in the form of weights. The more weight a conversion
+carries, the less attractive it seems. XParam recognizes several basic
+weights:
+<OL>
+<LI><B>CONV_EXACT</B> - a conversion between a type and itself. Its weight is essentially zero.</LI>
+<LI><B>CONV_PROMOTION</B> - a conversion from a <TT>bool</TT> to an
+<TT>int</TT> or from an
+<TT>unsigned char</TT> to an <TT>unsigned int</TT>.</LI>
+<LI><B>CONV_STANDARD</B> - any conversion between two built-in C++
+types other than those covered by CONV_PROMOTIONs and those involving type
+<TT>char</TT>.</LI>
+<LI><B>CONV_TO_PARENT</B> - a conversion between a pointer to
+a base type and a pointer to its parent type.</LI>
+<LI><B>CONV_USER</B> - any conversion not covered by
+previous rules. This is the default weight whenever a new conversion
+is registered by the user.</LI>
+</OL>
+The weights are listed here in order of increasing weight. The difference
+in weight between any two is infinite, so, for example, a sequence of any
+number of CONV_TO_PARENT conversions is still considered more
+appealing than a single CONV_USER. Note that XParam does
+not consider a switch from an object to a pointer to bear any weight.
+<P>
+With the exception of value-lists, explained below, the weight of
+a conversion path is considered to be the sum of the weights of all
+conversions along it. No more than one CONV_USER is
+allowed on a conversion path.
+<P>
+XParam will always choose the lightest available conversion path.
+If no conversion path can be considered lightest (for example, if
+two conversion paths are exactly as good) then XParam will call
+this an ambiguity.
+<P>
+This is more or less how C++ evaluates conversions, too. The main
+difference is that, in XParam, all conversions between type <TT>char</TT>
+and other built-in C++ types (numeric types) must be specified explicitly.
+<H4><A NAME="tentative">Tentative Types</A></H4>
+In C++, all explicit literal constants have a type. You specify
+strings by quotation marks, characters by apostrophes, single
+precision floating point decimals by a trailing 'f', and so on.
+<P>
+Because XParam works most commonly from the command-line, a more
+relaxed syntax is allowed in XParam to minimize the necessity of
+using characters that have meaning in Unix shell-parsing, such as
+quotations and apostrophes. For this reason, an assignment such
+as this:
+<P>
+<TT>
+my_parameter = 7
+</TT>
+<P>
+can be interpretted with the character <TT>7</TT> representing an
+explicit literal constant of type <TT>int</TT>, <TT>char</TT> or
+even <TT>std::string</TT>. XParam resolves this ambiguity by use
+of "tentative types" and destination-driven type matching. In
+essence, what this means is that XParam checks what types of
+explicit literal constants are permitted in the given context
+(for example, by checking the type of <TT>my_parameter</TT>)
+and then what types the given literal matches (in
+this case: <TT>int</TT>,<TT>char</TT> and <TT>std::string</TT>).
+Of the remaining options, XParam chooses according to the following
+rules:
+<UL>
+<LI>A numeric type is preferable to a non-numeric type.</LI>
+<LI>A <TT>char</TT> is preferable to an <TT>std::string</TT>.</LI>
+</UL>
+Remember that it is always possible to override these rules by
+explicitly specifying your desired type (for example, by adding
+quotation marks or apostrophes).
+<H4><A NAME="lists">List Comparisons</A></H4>
+List comparisons are different than scalar comparisons. Weighing them,
+in fact, looks very similar to the algorithm used by C++ (and XParam)
+to choose between overloaded functions and methods.
+<P>
+When choosing between "func(int,int)" and "func(long,long)" when
+receiving an input, for example "func(3,5L)", C++ weighs each
+element separately, so the distance from "func(3,5L)" to
+"func(int,int)" is (CONV_EXACT, CONV_STANDARD), and the
+distance from "func(3,5L)" to "func(long,long)" is
+(CONV_STANDARD, CONV_EXACT). Now, we must determine which
+of these possibilities is better. The way to do it is to go
+element by element and compare. If one option is at-least as
+good as any other option in all elements, and better than all
+other options in at least one element, then it is considered
+the best. If two options are exactly as good in all
+elements, then the two options are considered to be as good, as a whole.
+If, on the other hand, as is the case here, when comparing two
+options there is an element that is better in one and another
+element that is better in the other, then the two options
+are considered incomparable. If asked to choose between them,
+both C++ and XParam will determine that this is an ambiguity.
+<P>
+XParam takes this element-by-element approach in lists, as well.
+If <TT>school</TT>, for example, is a class that can be constructed from
+a vector of integers or from a vector of <TT>fish</TT>, and the
+initialization line is "elementary=[ 4L, 5L ]", where "elementary"
+is a variable of type <TT>school</TT>, then XParam must
+now choose between converting "[4L, 5L]", element by element,
+into a list of integers, "[4, 5]", which can be converted into
+an <TT>std::vector&lt;int&gt;</TT>, and converting the
+"[4L, 5L]", element-by-element, into a list of <TT>fish</TT>,
+"[fish(4L), fish(5L)]", and from there to a <TT>std::vector&lt;fish&gt;</TT>.
+<P>
+Supposing class <TT>fish</TT> has a constructor from <TT>long</TT>,
+then the first option weighs (CONV_STANDARD, CONV_STANDARD)
+and the second option weighs (CONV_USER,
+CONV_USER). Therefore, XParam will choose going through
+a vector of integers.
+<P>
+Let's, however, make this example more complicated. What if
+"elementary" was not of type <TT>school</TT> but of type <TT>school*</TT>,
+and <TT>school</TT> was a parent class to <TT>public_school*</TT>,
+and, furthermore, that it is not <TT>school</TT> that has a constructor
+from a vector of integers but <TT>public_school</TT>?
+<P>
+If we sort through all the details, we'll find that XParam must now
+choose between two paths:
+<P>
+untyped list -&gt; list of <TT>fish</TT> -&gt; <TT>std::vector&lt;fish&gt;</TT>
+ -&gt; <TT>school</TT>
+<P>
+and
+<P>
+untyped list -&gt; list of <TT>int</TT> -&gt; <TT>std::vector&lt;int&gt;</TT>
+-&gt; <TT>public_school</TT> -&gt; <TT>school</TT>
+<P>
+We know that it is easier to go from our list to a vector of integers than
+it is to go to a vector of <TT>fish</TT>. However, once we get there, it
+weighs more to go from integers to <TT>school*</TT> than it is from
+<TT>fish</TT> to <TT>school*</TT>. Which will XParam choose? The rule
+is that any conversions that are done after an HVL-to-class conversion
+bare a negligent weight compared to what is done prior to the conversion.
+So, in this case, XParam will still decide to go through
+<TT>std::vector&lt;int&gt;</TT>. If the two conversions, until the switch
+from HVL to vector, had been uncomparable, then the entire paths would
+have been uncomparable. Only if the two conversion paths had been of
+equivalent weights  until the switch from HVL to vector, the weights
+of the latter part of the conversion path would have had effect.
+<P>
+Next:<BR>
+Previous: <A HREF="faq.html">Frequently Asked Questions</A><BR>
+Up: <A HREF="index.html">Table of Contents</A><BR>
+</BODY>
+</HTML>
+
