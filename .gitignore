@@ -1,3 +1,17 @@
+.vscode/*
+config*
+
+
+**/Makefile
+**/Makefile.deprule
+**/Makefile.depends
+lib/pub_include
+
+# compiled bins
+**/bin/*
+lib/lib/*
+examples/simple/simple
+
 # Prerequisites
 *.d
 
