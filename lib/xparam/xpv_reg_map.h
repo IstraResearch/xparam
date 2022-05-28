@@ -134,7 +134,7 @@ namespace xParam_internal {
 
 			static MapType* create(const ValueMap& pair_list) 
 			{
-				std::auto_ptr<MapType> m(new MapType);
+				MapType* m = new MapType;
 
 				typename ValueMap::const_iterator i;
 				for (i=pair_list.begin(); i!=pair_list.end(); ++i) {
@@ -150,7 +150,7 @@ namespace xParam_internal {
 					(*m)[*item.key] = ValuePasser::typed_pass(item.value);
 				}
 
-				return m.release();
+				return m;
 			}
 	};
 

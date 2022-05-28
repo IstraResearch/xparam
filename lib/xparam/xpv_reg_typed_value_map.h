@@ -62,7 +62,7 @@ namespace xParam_internal {
 
 			static ValueMap* create(const HVLType& hvl) 
 			{
-				std::auto_ptr<ValueMap> val_map(new ValueMap);
+				ValueMap* val_map = new ValueMap;
 
 				typename HVLType::const_iterator i;
 				for (i=hvl.begin(); i!=hvl.end(); ++i) {
@@ -70,7 +70,7 @@ namespace xParam_internal {
 					val_map->push_back( MapItem(tuple->val_0, tuple->val_1) );
 				}
 
-				return val_map.release();
+				return val_map;
 			}
 	};
 

@@ -126,14 +126,14 @@ namespace xParam_internal {
 
 			static VecType* create(const HVL<T>& hvl) 
 			{
-				std::auto_ptr<VecType> vec(new VecType);
+				VecType* vec = new VecType;
 
 				typename HVL<T>::const_iterator i;
 				for (i=hvl.begin(); i!=hvl.end(); ++i) {
 					vec->push_back( ArgPasser::typed_pass(*i) );
 				}
 
-				return vec.release();
+				return vec;
 			}
 	};
 
