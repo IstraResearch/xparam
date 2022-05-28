@@ -11,16 +11,16 @@ CXX = @CXX@
 all : $(TARGETS)
 
 bin/calculator : $(OBJECTS)
-	$(CXX) $^ -lxparam -o $@
+	$(CXX) $^ -L../../lib/lib/.libs -lxparam -o $@
 
 $(OBJECTS) : obj/%.o : src/%.cpp include/functions.h Makefile
-	$(CXX) -c -o $@ $<
+	$(CXX) -c -g -I../../lib/xparam -o $@ $<
 
 sobj/mathfunc.so : $(SLOBJECTS)
-	libtool --mode=link --tag=LD $(CXX) -shared $^ -lxparam -o $@
+	libtool --mode=link --tag=CXX $(CXX) -shared $^ -lxparam -o $@
 
 $(SLOBJECTS) : obj/%.lo : src/%.cpp include/mathfunc.h include/functions.h
-	libtool --mode=compile --tag=CC $(CXX) -c -o $@ $<
+	libtool --mode=compile --tag=CXX $(CXX) -c -g -I../../lib/xparam -o $@ $<
 
 clean :
 	-rm -f $(TARGETS) $(OBJECTS) $(SOBJECTS) $(SLOBJECTS)

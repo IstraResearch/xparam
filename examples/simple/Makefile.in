@@ -1,10 +1,10 @@
 all : simple
 
 simple : simple.o
-	@CXX@ simple.o -lxparam -o $@
+	@CXX@ simple.o -L../../lib/lib/.libs -lxparam -o $@
 
 simple.o : simple.cpp Makefile
-	@CXX@ -c -o $@ simple.cpp
+	@CXX@ -c -I../../lib/xparam -o $@ simple.cpp
 
 clean :
 	-rm -f simple simple.o

@@ -1,7 +1,6 @@
 CXX = @CXX@
 prefix=@prefix@
 exec_prefix=@exec_prefix@
-includedir=@includedir@
 libdir=@libdir@
 
 CMPDIR = test_res.@dynamic@_cmp
@@ -26,8 +25,6 @@ TESTS := $(TESTS) test13 test14 test15 test16 test17 test18 test19 test20
 COMPARISON=$(patsubst %,$(CMPDIR)/%_out.res,$(TESTS))
 
 all : test
-
-include Makefile.depend
 
 test : message $(TESTS)
 	@echo "All tests passed successfully."
@@ -78,7 +75,7 @@ bin/test20 bin/test_readraw : obj/test_reg_rawprinter.o
 
 bin/% : obj/%.o
 ifeq (x$(DESTDIR),x)
-	@$(CXX) -lxparam -o $@ $^
+	@$(CXX) -Wl,-v -L../lib/lib/.libs -lxparam -o $@ $^
 else
 	@cd .. ; env LD_LIBRARY_PATH=$(DESTDIR)$(libdir) \
 $(CXX) -L$(DESTDIR)$(libdir) -lxparam -o $(patsubst %,tests/%,$@ $^) ; cd tests
@@ -86,9 +83,9 @@ endif
 
 obj/%.o : src/%.cpp Makefile
 ifeq (x$(DESTDIR),x)
-	@$(CXX) -c -o $@ $<
+	@$(CXX) -I../lib/xparam -c -o $@ $<
 else
-	@cd .. ; $(CXX) -I$(DESTDIR)$(includedir) -c -o $(patsubst %,tests/%,$@ $<) ; cd tests
+	@cd .. ; $(CXX) -I$(DESTDIR)xparam -c -o $(patsubst %,tests/%,$@ $<) ; cd tests
 endif
 
 clean :
