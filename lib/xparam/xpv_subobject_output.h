@@ -1,4 +1,4 @@
-#ifndef XPARAM_SUBOJBECT_OUTPUT_H
+#ifndef XPARAM_SUBOBJECT_OUTPUT_H
 #define XPARAM_SUBOBJECT_OUTPUT_H
 
 /*	Copyright (C) 2001,2002,2003 Ronnie Maor and Michael Brand
