@@ -4,7 +4,7 @@ config*
 
 **/Makefile
 **/Makefile.deprule
-**/Makefile.depends
+**/Makefile.depend
 lib/pub_include
 
 # compiled bins
