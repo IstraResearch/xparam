@@ -49,7 +49,7 @@ namespace xParam_internal {
 	template<class T>
 	HVL<T>* create_HVL(const ValueList& vl, TypeTag<T>, bool flexible) 
 	{
-		HVL<T>* hvl = new HVL<T>;
+		std::unique_ptr<HVL<T>> hvl = std::make_unique<HVL<T>>();
 		
 		ValueList::const_iterator i;
 		for (i=vl.begin(); i!=vl.end(); ++i) {
@@ -64,7 +64,7 @@ namespace xParam_internal {
 			hvl->push_back(t);
 		}
 
-		return hvl;
+		return hvl.release();
 	}
 
 

@@ -91,7 +91,7 @@ namespace xParam_internal {
 	  
 	  static SetType* create(const HVL<T>& hvl) 
 	  {
-		  SetType* set = new SetType;
+		  std::unique_ptr<SetType> set = std::make_unique<SetType>();
 		  
 		  typename HVL<T>::const_iterator i;
 		  for (i=hvl.begin(); i!=hvl.end(); ++i) {
@@ -106,7 +106,7 @@ namespace xParam_internal {
 			  
 		  }
 		  
-		  return set;
+		  return set.release();
 	  }
   };
 

@@ -126,14 +126,14 @@ namespace xParam_internal {
 
 			static ListType* create(const HVL<T>& hvl) 
 			{
-				ListType* list_obj = new ListType;
+				std::unique_ptr<ListType> list_obj = std::make_unique<ListType>();
 
 				typename HVL<T>::const_iterator i;
 				for (i=hvl.begin(); i!=hvl.end(); ++i) {
 					list_obj->push_back( ArgPasser::typed_pass(*i) );
 				}
 
-				return list_obj;
+				return list_obj.release();
 			}
 	};
 
