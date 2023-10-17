@@ -47,7 +47,7 @@ ANTLR_BEGIN_NAMESPACE(xparam_antlr)
 
 class CharScanner;
 
-class CharScannerLiteralsLess : public ANTLR_USE_NAMESPACE(std)binary_function<ANTLR_USE_NAMESPACE(std)string,ANTLR_USE_NAMESPACE(std)string,bool> {
+class CharScannerLiteralsLess : public ANTLR_USE_NAMESPACE(std)__binary_function<ANTLR_USE_NAMESPACE(std)string,ANTLR_USE_NAMESPACE(std)string,bool> {
 private:
 	const CharScanner* scanner;
 public:
